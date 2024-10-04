@@ -20,4 +20,29 @@ int main()
     {
         std::cout << *it << std::endl;
     }
+
+    MyStd::Vector<bool> bv;
+    bv.pushBack(true);
+    bv.pushBack(false);
+    bv.pushBack(false);
+    bv.pushBack(true);
+    bv.pushBack(false);
+
+    for (size_t i = 0; i < bv.size(); ++i)
+    {
+        std::cout << bv[i] << std::endl;
+    }
+
+    bv.popBack();
+    bv.popBack();
+
+    bv[2] = true;
+
+    std::cout << "RESTART\n";
+
+
+    for (size_t i = 0; i < bv.size(); ++i)
+    {
+        std::cout << bv[i] << std::endl;
+    }
 }
