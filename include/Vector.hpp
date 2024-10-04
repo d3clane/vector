@@ -370,10 +370,6 @@ void Vector<T, AllocatorType>::shrinkToFit()
 template<typename T, Allocator AllocatorType>
 void Vector<T, AllocatorType>::clear() noexcept
 {
-    delete[] data_;
-
-    data_ = nullptr;
-    capacity_ = 0;
     size_ = 0;
 }
 
