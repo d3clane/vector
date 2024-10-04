@@ -3,7 +3,7 @@
 
 #include "VectorIteratorClass.hpp"
 
-namespace myStd
+namespace MyStd
 {
 
 template<typename T>
@@ -19,7 +19,7 @@ VectorIterator<T>& VectorIterator<T>::operator++() noexcept
 template<typename T>
 VectorIterator<T> VectorIterator<T>::operator++(int) noexcept
 {
-    VectorIterator tmp = *this;
+    VectorIterator<T> tmp = *this;
     ++(*this);
     return tmp;
 }
@@ -34,7 +34,7 @@ VectorIterator<T>& VectorIterator<T>::operator--() noexcept
 template<typename T>
 VectorIterator<T> VectorIterator<T>::operator--(int) noexcept
 {
-    VectorIterator tmp = *this;
+    VectorIterator<T> tmp = *this;
     --(*this);
     return tmp;
 }
@@ -54,13 +54,13 @@ VectorIterator<T>& VectorIterator<T>::operator-=(Difference delta) noexcept
 }
 
 template<typename T>
-VectorIterator<T>::Reference VectorIterator<T>::operator*() const
+typename VectorIterator<T>::Reference VectorIterator<T>::operator*() const
 {
     return *ptr_;
 }
 
 template<typename T>
-VectorIterator<T>::Pointer VectorIterator<T>::operator->() const
+typename VectorIterator<T>::Pointer VectorIterator<T>::operator->() const
 {
     return ptr_;
 }
@@ -68,7 +68,7 @@ VectorIterator<T>::Pointer VectorIterator<T>::operator->() const
 template<typename T>
 VectorIterator<T> operator+(const VectorIterator<T>& lhs, typename VectorIterator<T>::Difference delta) noexcept
 {
-    VectorIterator tmp = *this;
+    VectorIterator<T> tmp = *lhs;
     tmp += delta;
     return tmp;
 }
@@ -76,7 +76,7 @@ VectorIterator<T> operator+(const VectorIterator<T>& lhs, typename VectorIterato
 template<typename T>
 VectorIterator<T> operator-(const VectorIterator<T>& lhs, typename VectorIterator<T>::Difference delta) noexcept
 {
-    VectorIterator tmp = *this;
+    VectorIterator<T> tmp = *lhs;
     tmp -= delta;
     return tmp;
 }
@@ -116,7 +116,6 @@ bool operator>=(const VectorIterator<T>& lhs, const VectorIterator<T>& rhs) noex
 {
     return !(lhs < rhs);
 }
-
 
 } // namespace myStd
 

@@ -1,7 +1,7 @@
 #ifndef VECTOR_ITERATOR_CLASS_HPP
 #define VECTOR_ITERATOR_CLASS_HPP
 
-namespace myStd
+namespace MyStd
 {
 
 template <typename T>
@@ -15,7 +15,7 @@ public:
     using ConstPointer   = const T*;
     using Reference      = T&;
     using ConstReference = const T&;
-    using Difference     = std::ptrdiff_t;
+    using Difference     = ptrdiff_t;
 
     explicit VectorIterator(T* ptr = nullptr) noexcept;
     

@@ -1,9 +1,11 @@
 #ifndef VECTOR_CLASS_HPP
 #define VECTOR_CLASS_HPP
 
+#include <stddef.h>
+
 #include "VectorIteratorClass.hpp"
 
-namespace myStd
+namespace MyStd
 {
 
 enum class Allocator
@@ -26,45 +28,53 @@ public:
 
     explicit Vector(size_t size, const T& value = T()); // TODO: noexcept based on functions in Vector
     Vector(Iterator first, Iterator last);
-    Vector(const Vector& other);
+    Vector(Vector& other); // TODO: const Vector& other should be. Like that because I don't have const iterator
+    // TODO: create it or think about it more (maybe like stl input iterator smth like that)
+
+    Vector(Vector&& other) noexcept;
 
     Vector& operator=(const Vector& other);
+    Vector& operator=(Vector&& other) noexcept;
 
     ~Vector();
 
     void assign(size_t count, const T& value);
     void assign(Iterator first, Iterator last);
 
-    Iterator::Reference      at(size_t pos);
-    Iterator::ConstReference at(size_t pos) const;
+    typename Iterator::Reference      at(size_t pos);
+    typename Iterator::ConstReference at(size_t pos) const;
 
-    Iterator::Reference      operator[](size_t pos);
-    Iterator::ConstReference operator[](size_t pos) const;
+    typename Iterator::Reference      operator[](size_t pos) noexcept;
+    typename Iterator::ConstReference operator[](size_t pos) const noexcept;
 
-    Iterator::Reference      front();
-    Iterator::ConstReference front() const;
+    typename Iterator::Reference      front() noexcept;
+    typename Iterator::ConstReference front() const noexcept;
 
-    Iterator::Reference      back();
-    Iterator::ConstReference back() const;
+    typename Iterator::Reference      back() noexcept;
+    typename Iterator::ConstReference back() const noexcept;
 
-    T*       data();
-    const T* data() const;
+    T*       data() noexcept;
+    const T* data() const noexcept;
 
-    Iterator begin();
-    Iterator end();
+    Iterator begin() noexcept;
+    Iterator end  () noexcept;
+
+    const Iterator begin() const noexcept;
+    const Iterator end  () const noexcept;
 
     // TODO: rbegin(), rend()
 
-    bool empty() const;
-    size_t size() const;
-    size_t capacity() const;
+    bool   empty   () const noexcept;
+    size_t size    () const noexcept;
+    size_t capacity() const noexcept;
+
     void reserve(size_t newCapacity);
 
     void shrinkToFit();
-    void clear();
+    void clear() noexcept;
 
-    void push_back(const T& value);
-    void pop_back();
+    void pushBack(const T& value);
+    void popBack() noexcept;
 
     Iterator insert(Iterator pos, const T& value);
     Iterator insert(Iterator pos, size_t count, const T& value);
@@ -76,6 +86,15 @@ public:
     void resize(size_t newSize, const T& value = T());
 
     void swap(Vector& other);
+
+private:
+    enum class PushResult
+    {
+        Ok,
+        NeedToResize,
+    };
+
+    PushResult tryPush(const T& value);
 };
 
 template<typename T, Allocator AllocatorType>
