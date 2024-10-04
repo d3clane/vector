@@ -25,7 +25,7 @@ struct AllocatedMemInfo
 };
 
 template<typename T, Allocator AllocatorType>
-AllocatedMemInfo<T> tryMemAlloc(size_t size)
+AllocatedMemInfo<T> allocateMemory(size_t size)
 {
     T* data = nullptr;
     try
@@ -45,7 +45,7 @@ AllocatedMemInfo<T> tryMemAlloc(size_t size)
 }
 
 template<typename T, Allocator AllocatorType>
-void tryCopy(
+void copyData(
     T* data, 
     typename Vector<T, AllocatorType>::Iterator first, typename Vector<T, AllocatorType>::Iterator last
 )
@@ -75,7 +75,7 @@ void tryCopy(
 }
 
 template<typename T, Allocator AllocatorType>
-void tryCopy(T* data, size_t count, const T& value)
+void copyData(T* data, size_t count, const T& value)
 {
     try
     {
@@ -105,9 +105,9 @@ void reallocMemory(Vector<T, AllocatorType>& data, size_t newSize)
 {
     assert(newSize >= data.size_);
 
-    T* newData = tryMemAlloc<T, AllocatorType>(newSize);
+    T* newData = allocateMemory<T, AllocatorType>(newSize);
 
-    tryCopy<T, AllocatorType>(newData, data.begin(), data.begin() + data.size_);
+    copyData<T, AllocatorType>(newData, data.begin(), data.begin() + data.size_);
 
     delete [] data.data_;
     data.data_ = newData;
@@ -138,7 +138,7 @@ Vector<T, AllocatorType>::Vector() noexcept :  data_(nullptr), size_(0), capacit
 template<typename T, Allocator AllocatorType>
 Vector<T, AllocatorType>::Vector(size_t size, const T& value) : size_(size), capacity_(size)
 {
-    updateVectorInfo(data_, size_, capacity_, tryMemAlloc<T, AllocatorType>(size_));
+    updateVectorInfo(data_, size_, capacity_, allocateMemory<T, AllocatorType>(size_));
 
     try
     {
@@ -168,18 +168,18 @@ Vector<T, AllocatorType>::Vector(size_t size, const T& value) : size_(size), cap
 template<typename T, Allocator AllocatorType>
 Vector<T, AllocatorType>::Vector(Iterator first, Iterator last) : size_(last - first), capacity_(size_)
 {
-    updateVectorInfo(data_, size_, capacity_, tryMemAlloc<T, AllocatorType>(size_));
+    updateVectorInfo(data_, size_, capacity_, allocateMemory<T, AllocatorType>(size_));
 
-    tryCopy<T, AllocatorType>(data_, first, last);
+    copyData<T, AllocatorType>(data_, first, last);
 }
 
 
 template<typename T, Allocator AllocatorType>
 Vector<T, AllocatorType>::Vector(Vector& other) : size_(other.size_), capacity_(other.size_)
 {
-    updateVectorInfo(data_, size_, capacity_, tryMemAlloc<T, AllocatorType>(size_));
+    updateVectorInfo(data_, size_, capacity_, allocateMemory<T, AllocatorType>(size_));
 
-    tryCopy<T, AllocatorType>(data_, other.begin(), other.end());
+    copyData<T, AllocatorType>(data_, other.begin(), other.end());
 }
 
 template<typename T, Allocator AllocatorType>
@@ -219,7 +219,7 @@ void Vector<T, AllocatorType>::assign(size_t count, const T& value)
     if (count > capacity_)
         reallocMemory<T, AllocatorType>(this, count);
 
-    tryCopy<T, AllocatorType>(data_, count, value);   
+    copyData<T, AllocatorType>(data_, count, value);   
 }
 
 template<typename T, Allocator AllocatorType>
@@ -229,7 +229,7 @@ void Vector<T, AllocatorType>::assign(Iterator first, Iterator last)
     if (count > capacity_)
         reallocMemory<T, AllocatorType>(this, count);
 
-    tryCopy<T, AllocatorType>(data_, first, last);
+    copyData<T, AllocatorType>(data_, first, last);
 }
 
 
@@ -388,7 +388,7 @@ void Vector<T, AllocatorType>::pushBack(const T& value)
     assert(pushResult == PushResult::NeedToResize);
 
     Vector<T, AllocatorType> newVector{getCapacityAfterGrowth(capacity_)};
-    tryCopy<T, AllocatorType>(newVector.data_, begin(), end());
+    copyData<T, AllocatorType>(newVector.data_, begin(), end());
     newVector.size_ = size_;
 
     pushResult = newVector.tryPush(value);
@@ -401,6 +401,35 @@ template<typename T, Allocator AllocatorType>
 void Vector<T, AllocatorType>::popBack() noexcept
 {
     size_--;
+}
+
+#if 0
+template<typename T, Allocator AllocatorType>
+typename Vector<T, AllocatorType>::Iterator Vector<T, AllocatorType>::insert(Iterator pos, const T& value)
+{
+    
+}
+
+Iterator insert(Iterator pos, size_t count, const T& value);
+Iterator insert(Iterator pos, Iterator first, Iterator last);
+
+Iterator erase(Iterator pos);
+Iterator erase(Iterator first, Iterator last);
+#endif
+
+template<typename T, Allocator AllocatorType>
+void Vector<T, AllocatorType>::resize(size_t newSize, const T& value)
+{
+    Vector newVector{newSize, value};
+    copyData(newVector.data_, begin(), begin() + std::min(newSize, size_));
+
+    std::swap(*this, newVector);
+}
+
+template<typename T, Allocator AllocatorType>
+void Vector<T, AllocatorType>::swap(Vector& other)
+{
+    std::swap(data_, other.data_); // using my move ctor
 }
 
 // ------------------------------Private------------------------------

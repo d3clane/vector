@@ -76,12 +76,14 @@ public:
     void pushBack(const T& value);
     void popBack() noexcept;
 
+#if 0
     Iterator insert(Iterator pos, const T& value);
     Iterator insert(Iterator pos, size_t count, const T& value);
     Iterator insert(Iterator pos, Iterator first, Iterator last);
 
     Iterator erase(Iterator pos);
     Iterator erase(Iterator first, Iterator last);
+#endif
 
     void resize(size_t newSize, const T& value = T());
 
