@@ -199,7 +199,7 @@ void rewriteData(
     }
 }
 
-size_t getCapacityAfterGrowth(size_t capacity) noexcept
+inline size_t getCapacityAfterGrowth(size_t capacity) noexcept
 {
     static const size_t growthFactor = 2;
     static const size_t minCapacity  = 1; 
