@@ -17,12 +17,13 @@ enum class Allocator
 template <typename T, Allocator AllocatorType = Allocator::StaticMem>
 class Vector
 {
-    T* data_;
+    char* data_;
     size_t size_;
     size_t capacity_;
 
 public:
-    using Iterator = VectorIterator<T>;
+    using Iterator      = VectorIterator<T>;
+    using ConstIterator = VectorIterator<const T>;
 
     Vector() noexcept;
 
@@ -97,6 +98,8 @@ private:
     };
 
     PushResult tryPush(const T& value);
+
+    void reallocMemory(size_t newSize);
 };
 
 template<typename T, Allocator AllocatorType>

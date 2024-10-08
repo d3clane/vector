@@ -50,7 +50,6 @@ public:
     friend bool operator>=(const VectorIterator<U>& lhs, const VectorIterator<U>& rhs) noexcept;
 };
 
-
 template <typename T>
 VectorIterator<T> operator+(const VectorIterator<T>& lhs, typename VectorIterator<T>::Difference delta) noexcept;
 

@@ -1,10 +1,58 @@
 #include "Vector.hpp"
 
 #include <iostream>
+#include <vector>
 
+struct TestStruct
+{
+    int val = 78;
+
+    TestStruct() { std::cout << "constructor\n"; }
+    TestStruct(const TestStruct&) { std::cout << "copy constructor\n"; }
+
+    TestStruct(TestStruct&&) { std::cout << "move constructor\n"; }
+
+    TestStruct& operator=(TestStruct&&) { std::cout << "move assignment\n"; return *this; }
+    TestStruct& operator=(const TestStruct&) { std::cout << "copy assignment\n"; return *this; }
+
+    ~TestStruct() { std::cout << "destructor\n"; }
+
+    operator int() { return val; }
+};
 int main()
 {
-    MyStd::Vector<int> v;
+
+    TestStruct myTmp;
+    std::cout << "BEGIN\n";
+
+    MyStd::Vector<TestStruct> v{5, myTmp};
+
+    std::cout << "OPERATOR=\n";
+    v[1] = myTmp;
+
+    std::cout << "RESERVE:\n";
+    v.reserve(10000);
+
+    std::cout << "PUSHBACK:\n";
+    v.pushBack(myTmp);
+
+    std::cout << "POPBACK:\n";
+    v.popBack();
+    v.popBack();
+    v.popBack();
+
+    std::cout << "CLEAR\n";
+    v.clear();
+
+    std::cout << "PRINT\n";
+
+    for (size_t i = 0; i < v.size(); ++i)
+    {
+        std::cout << v[i] << std::endl;
+    }
+
+    std::cout << "END\n";
+#if 0
     v.pushBack(1);
     v.pushBack(2);
     v.pushBack(3);
@@ -20,7 +68,9 @@ int main()
     {
         std::cout << *it << std::endl;
     }
+#endif
 
+#if 0
     MyStd::Vector<bool> bv;
     bv.pushBack(true);
     bv.pushBack(false);
@@ -45,4 +95,25 @@ int main()
     {
         std::cout << bv[i] << std::endl;
     }
+#endif
+
+#if 0
+    std::vector<tmp> v;
+    v.reserve(10);
+    v.push_back(tmp());
+
+    std::cout << "HE\n";
+    v.assign(4, tmp());
+    //v.clear();
+
+    std::cout << "ME\n";
+    
+    tmp t;
+
+    std::cout << "ZE\n";
+
+    new(&t) tmp();
+    std::cout << "ENDED\n";
+#endif
+
 }

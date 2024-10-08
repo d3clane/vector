@@ -7,6 +7,7 @@
 #include "Exceptions.hpp"
 
 #include <algorithm>
+#include <cstdio>
 
 namespace MyStd
 {
@@ -15,22 +16,22 @@ namespace
 {
 
 template<typename T>
-struct AllocatedMemInfo
+void dtorElements(T* data, size_t from, size_t to) noexcept
 {
-    T* data;
-    size_t size;
-    size_t capacity;
+    for (size_t i = from; i < to; ++i)
+    {
+        data[i].~T();
+    }
+}
 
-    AllocatedMemInfo(T* data, size_t size, size_t capacity) : data(data), size(size), capacity(capacity) {}
-};
-
-template<typename T, Allocator AllocatorType>
-AllocatedMemInfo<T> allocateMemory(size_t size)
+template<Allocator AllocatorType>
+char* allocateMemoryInBytes(size_t sizeInBytes)
 {
-    T* data = nullptr;
+    char* data = nullptr;
+
     try
     {
-        data = new T[size];
+        data = new char[sizeInBytes];
     }
     catch (const std::bad_alloc& e)
     {
@@ -41,33 +42,94 @@ AllocatedMemInfo<T> allocateMemory(size_t size)
         );
     }
 
-    return AllocatedMemInfo<T>{data, 0, size};
+    return data;
 }
 
 template<typename T, Allocator AllocatorType>
-void copyData(
-    T* data, 
-    typename Vector<T, AllocatorType>::Iterator first, typename Vector<T, AllocatorType>::Iterator last
+void copyToEmptyData(
+    char* data, 
+    typename Vector<T, AllocatorType>::Iterator first, 
+    typename Vector<T, AllocatorType>::Iterator last
+)
+{
+    size_t dataPos = 0;
+    try
+    {
+        for (typename Vector<T, AllocatorType>::Iterator it = first; it != last; ++it)
+        {
+            new(&data[dataPos * sizeof(T)]) T(*it);
+            dataPos++;
+        }
+    }
+    catch (ExceptionWithReason& exception)
+    {
+        dtorElements(reinterpret_cast<T*>(data), 0, dataPos - 1);
+        throw EXCEPTION_WITH_REASON_CREATE_NEXT_EXCEPTION(
+            StdErrors::VectorCtorErr,
+            "Failed to copy elements while copying vector",
+            std::move(exception)
+        );
+    }
+    catch (...)
+    {
+        dtorElements(reinterpret_cast<T*>(data), 0, dataPos - 1);
+        throw;
+    }
+}
+
+template<typename T, Allocator AllocatorType>
+void copyToEmptyData(char* data, size_t count, const T& value)
+{
+    size_t dataPos = 0;
+    try
+    {
+        for (dataPos = 0; dataPos < count; ++dataPos)
+        {
+            new(&data[dataPos * sizeof(T)]) T(value);
+        }
+    }
+    catch (ExceptionWithReason& exception)
+    {
+        dtorElements(reinterpret_cast<T*>(data), 0, dataPos - 1);
+        throw EXCEPTION_WITH_REASON_CREATE_NEXT_EXCEPTION(
+            StdErrors::VectorCtorErr,
+            "Failed to copy elements while copying vector",
+            std::move(exception)
+        );
+    }
+    catch (...)
+    {
+        dtorElements(reinterpret_cast<T*>(data), 0, dataPos - 1);
+        throw;
+    }
+}
+
+template<typename T, Allocator AllocatorType>
+void tryCopyToEmptyDataElseDelete(char* data, size_t count, const T& value)
+{
+    try
+    {
+        copyToEmptyData<T, AllocatorType>(data, count, value);
+    }
+    catch (...)
+    {
+        delete [] data;
+        throw;
+    }
+}
+
+template<typename T, Allocator AllocatorType>
+void tryCopyToEmptyDataElseDelete(
+    char* data,
+    typename Vector<T, AllocatorType>::Iterator first,
+    typename Vector<T, AllocatorType>::Iterator last
 )
 {
     try
     {
-        size_t dataPos = 0;
-        for (typename Vector<T, AllocatorType>::Iterator it = first; it != last; ++it)
-        {
-            data[dataPos++] = *it;
-        }
+        copyToEmptyData<T, AllocatorType>(data, first, last);
     }
-    catch (ExceptionWithReason& exception)
-    {
-        delete [] data;
-        throw EXCEPTION_WITH_REASON_CREATE_NEXT_EXCEPTION(
-            StdErrors::VectorCtorErr,
-            "Failed to copy elements while copying vector",
-            std::move(exception)
-        );
-    }
-    catch (...)
+    catch(...)
     {
         delete [] data;
         throw;
@@ -75,18 +137,22 @@ void copyData(
 }
 
 template<typename T, Allocator AllocatorType>
-void copyData(T* data, size_t count, const T& value)
+void rewriteData(char* data, size_t count, const T& value)
 {
+    size_t dataPos = 0;
+
+    T* dataTyped = reinterpret_cast<T*>(data);
+
     try
     {
-        for (size_t i = 0; i < count; ++i)
+        for (dataPos = 0; dataPos < count; ++dataPos)
         {
-            data[i] = value;
+            dataTyped[dataPos] = value;
         }
     }
     catch (ExceptionWithReason& exception)
     {
-        delete [] data;
+        dtorElements(dataTyped, 0, dataPos - 1);
         throw EXCEPTION_WITH_REASON_CREATE_NEXT_EXCEPTION(
             StdErrors::VectorCtorErr,
             "Failed to copy elements while copying vector",
@@ -95,32 +161,42 @@ void copyData(T* data, size_t count, const T& value)
     }
     catch (...)
     {
-        delete [] data;
+        dtorElements(dataTyped, 0, dataPos - 1);
         throw;
     }
 }
 
 template<typename T, Allocator AllocatorType>
-void reallocMemory(Vector<T, AllocatorType>& data, size_t newSize)
+void rewriteData(
+    char* data, 
+    typename Vector<T, AllocatorType>::Iterator first,
+    typename Vector<T, AllocatorType>::Iterator last
+)
 {
-    assert(newSize >= data.size_);
-
-    T* newData = allocateMemory<T, AllocatorType>(newSize).data_;
-
-    copyData<T, AllocatorType>(newData, data.begin(), data.begin() + data.size_);
-
-    delete [] data.data_;
-    data.data_ = newData;
-    data.size_ = data.size_;
-    data.capacity_ = newSize;
-}
-
-template<typename T>
-void updateVectorInfo(T*& data, size_t& size, size_t& capacity, const AllocatedMemInfo<T>& info) noexcept
-{
-    data     = info.data;
-    size     = info.size;
-    capacity = info.capacity;
+    T* dataTyped = reinterpret_cast<T*>(data);
+    size_t dataPos = 0;
+    try
+    {
+        for (typename Vector<T, AllocatorType>::Iterator it = first; it != last; ++it)
+        {
+            dataTyped[dataPos] = *it;
+            dataPos++;
+        }
+    }
+    catch (ExceptionWithReason& exception)
+    {
+        dtorElements(dataTyped, 0, dataPos - 1);
+        throw EXCEPTION_WITH_REASON_CREATE_NEXT_EXCEPTION(
+            StdErrors::VectorCtorErr,
+            "Failed to copy elements while copying vector",
+            std::move(exception)
+        );
+    }
+    catch (...)
+    {
+        dtorElements(dataTyped, 0, dataPos - 1);
+        throw;
+    }
 }
 
 size_t getCapacityAfterGrowth(size_t capacity) noexcept
@@ -138,27 +214,26 @@ Vector<T, AllocatorType>::Vector() noexcept :  data_(nullptr), size_(0), capacit
 template<typename T, Allocator AllocatorType>
 Vector<T, AllocatorType>::Vector(size_t size, const T& value) : size_(size), capacity_(size)
 {
-    updateVectorInfo(data_, size_, capacity_, allocateMemory<T, AllocatorType>(size_));
-
-    copyData<T, AllocatorType>(data_, size, value);
+    data_ = allocateMemoryInBytes<AllocatorType>(capacity_ * sizeof(T));
+    
+    tryCopyToEmptyDataElseDelete<T, AllocatorType>(data_, size_, value);
 }
 
 
 template<typename T, Allocator AllocatorType>
 Vector<T, AllocatorType>::Vector(Iterator first, Iterator last) : size_(last - first), capacity_(size_)
 {
-    updateVectorInfo(data_, size_, capacity_, allocateMemory<T, AllocatorType>(size_));
-
-    copyData<T, AllocatorType>(data_, first, last);
+    data_ = allocateMemoryInBytes<AllocatorType>(capacity_ * sizeof(T));
+    tryCopyToEmptyDataElseDelete<T, AllocatorType>(data_, first, last);
 }
 
 
 template<typename T, Allocator AllocatorType>
 Vector<T, AllocatorType>::Vector(Vector& other) : size_(other.size_), capacity_(other.size_)
 {
-    updateVectorInfo(data_, size_, capacity_, allocateMemory<T, AllocatorType>(size_));
+    data_ = allocateMemoryInBytes<AllocatorType>(size_ * sizeof(T));
 
-    copyData<T, AllocatorType>(data_, other.begin(), other.end());
+    tryCopyToEmptyDataElseDelete<T, AllocatorType>(data_, other.data_, size_);
 }
 
 template<typename T, Allocator AllocatorType>
@@ -189,6 +264,12 @@ Vector<T, AllocatorType>& Vector<T, AllocatorType>::operator=(Vector&& other) no
 template<typename T, Allocator AllocatorType>
 Vector<T, AllocatorType>::~Vector()
 {
+    if (data_ == nullptr)
+        return;
+    
+    T* dataTyped = reinterpret_cast<T*>(data_);
+    dtorElements(dataTyped, 0, size_);
+
     delete[] data_;
 }
 
@@ -196,21 +277,29 @@ template<typename T, Allocator AllocatorType>
 void Vector<T, AllocatorType>::assign(size_t count, const T& value)
 {
     if (count > capacity_)
-        reallocMemory<T, AllocatorType>(this, count);
+        reallocMemory(count);
 
-    copyData<T, AllocatorType>(data_, count, value);   
+    size_t kDataToRewrite = std::min(count, size_);
+    size_t kDataToFill    = count - kDataToRewrite;
+
+    rewriteData<T, AllocatorType>(data_, kDataToRewrite, value);
+    copyToEmptyData<T, AllocatorType>(data_ + kDataToRewrite * sizeof(T), kDataToFill, value);
 }
 
 template<typename T, Allocator AllocatorType>
 void Vector<T, AllocatorType>::assign(Iterator first, Iterator last)
 {
     size_t count = last - first;
+
     if (count > capacity_)
-        reallocMemory<T, AllocatorType>(this, count);
+        reallocMemory(count);
 
-    copyData<T, AllocatorType>(data_, first, last);
+    size_t kDataToRewrite = std::min(count, size_);
+
+    Iterator rewriteLast = first + kDataToRewrite; 
+    rewriteData<T, AllocatorType>(data_, first, rewriteLast);
+    copyToEmptyData<T, AllocatorType>(data_ + kDataToRewrite * sizeof(T), rewriteLast, last);
 }
-
 
 template<typename T, Allocator AllocatorType>
 typename Vector<T, AllocatorType>::Iterator::Reference Vector<T, AllocatorType>::at(size_t pos)
@@ -248,7 +337,7 @@ typename Vector<T, AllocatorType>::Iterator::ConstReference Vector<T, AllocatorT
     size_t pos
 ) const noexcept
 {
-    return data_[pos];
+    return reinterpret_cast<const T*>(data_)[pos];
 }
 
 template<typename T, Allocator AllocatorType>
@@ -262,7 +351,7 @@ typename Vector<T, AllocatorType>::Iterator::Reference Vector<T, AllocatorType>:
 template<typename T, Allocator AllocatorType>
 typename Vector<T, AllocatorType>::Iterator::ConstReference Vector<T, AllocatorType>::front() const noexcept
 {
-    return data_[0];
+    return reinterpret_cast<T*>(data)[0];
 }
 
 template<typename T, Allocator AllocatorType>
@@ -276,7 +365,7 @@ typename Vector<T, AllocatorType>::Iterator::Reference Vector<T, AllocatorType>:
 template<typename T, Allocator AllocatorType>
 typename Vector<T, AllocatorType>::Iterator::ConstReference Vector<T, AllocatorType>::back() const noexcept
 {
-    return data_[size_ - 1];
+    return reinterpret_cast<T*>(data)[size_ - 1];
 }
 
 template<typename T, Allocator AllocatorType>
@@ -288,19 +377,19 @@ T* Vector<T, AllocatorType>::data() noexcept
 template<typename T, Allocator AllocatorType>
 const T* Vector<T, AllocatorType>::data() const noexcept
 {
-    return data_;
+    return reinterpret_cast<T*>(data_);
 }
 
 template<typename T, Allocator AllocatorType>
 typename Vector<T, AllocatorType>::Iterator Vector<T, AllocatorType>::begin() noexcept
 {
-    return Iterator{data_};
+    return Iterator{reinterpret_cast<T*>(data_)};
 }
 
 template<typename T, Allocator AllocatorType>
 typename Vector<T, AllocatorType>::Iterator Vector<T, AllocatorType>::end() noexcept
 {
-    return Iterator{data_ + size_};
+    return Iterator{reinterpret_cast<T*>(data_) + size_};
 }
 
 template<typename T, Allocator AllocatorType>
@@ -337,18 +426,20 @@ template<typename T, Allocator AllocatorType>
 void Vector<T, AllocatorType>::reserve(size_t newCapacity)
 {
     if (newCapacity > capacity_)
-        reallocMemory<T, AllocatorType>(this, newCapacity);
+        reallocMemory(newCapacity);
 }
 
 template<typename T, Allocator AllocatorType>
 void Vector<T, AllocatorType>::shrinkToFit()
 {
-    reallocMemory<T, AllocatorType>(this, size_);
+    reallocMemory(size_);
 }
 
 template<typename T, Allocator AllocatorType>
 void Vector<T, AllocatorType>::clear() noexcept
 {
+    dtorElements(reinterpret_cast<T*>(data_), 0, size_);
+
     size_ = 0;
 }
 
@@ -362,8 +453,10 @@ void Vector<T, AllocatorType>::pushBack(const T& value)
 
     assert(pushResult == PushResult::NeedToResize);
 
-    Vector<T, AllocatorType> newVector{getCapacityAfterGrowth(capacity_)};
-    copyData<T, AllocatorType>(newVector.data_, begin(), end());
+    Vector<T, AllocatorType> newVector;
+    newVector.reserve(getCapacityAfterGrowth(capacity_));
+
+    copyToEmptyData<T, AllocatorType>(newVector.data_, begin(), end());
     newVector.size_ = size_;
 
     pushResult = newVector.tryPush(value);
@@ -375,6 +468,7 @@ void Vector<T, AllocatorType>::pushBack(const T& value)
 template<typename T, Allocator AllocatorType>
 void Vector<T, AllocatorType>::popBack() noexcept
 {
+    dtorElements(reinterpret_cast<T*>(data_) + size_ - 1, 0, 1);
     size_--;
 }
 
@@ -395,10 +489,20 @@ Iterator erase(Iterator first, Iterator last);
 template<typename T, Allocator AllocatorType>
 void Vector<T, AllocatorType>::resize(size_t newSize, const T& value)
 {
-    Vector newVector{newSize, value};
-    copyData(newVector.data_, begin(), begin() + std::min(newSize, size_));
+    char* newData = allocateMemoryInBytes<AllocatorType>(newSize * sizeof(T));
 
-    std::swap(*this, newVector);
+    Iterator endCopyData = begin() + std::min(size_, newSize);
+    copyToEmptyData<T, AllocatorType>(newData, begin(), endCopyData);
+    
+    if (newSize > size_)
+        copyToEmptyData<T, AllocatorType>(newData + size_ * sizeof(T), newSize - size_, value);
+
+    dtorElements(data_, 0, size_);
+    delete [] data_;
+
+    data_     = newData;
+    size_     = newSize;
+    capacity_ = newSize;
 }
 
 template<typename T, Allocator AllocatorType>
@@ -417,7 +521,7 @@ typename Vector<T, AllocatorType>::PushResult Vector<T, AllocatorType>::tryPush(
 
     try
     {
-        data_[size_] = value;
+        new(data_ + size_ * sizeof(T)) T(value);
         ++size_;
     }
     catch (ExceptionWithReason& exception)
@@ -431,6 +535,24 @@ typename Vector<T, AllocatorType>::PushResult Vector<T, AllocatorType>::tryPush(
 
     return PushResult::Ok;
 }
+
+template<typename T, Allocator AllocatorType>
+void Vector<T, AllocatorType>::reallocMemory(size_t newCapacity)
+{
+    assert(newCapacity >= capacity_);
+
+    char* newData = allocateMemoryInBytes<AllocatorType>(newCapacity * sizeof(T));
+
+    copyToEmptyData<T, AllocatorType>(newData, begin(), end());
+
+    dtorElements(reinterpret_cast<T*>(data_), 0, size_);
+    delete [] data_;
+
+    data_ = newData;
+    /* size_ = size_ */
+    capacity_ = newCapacity;
+}
+
 
 } // namespace MyStd
 

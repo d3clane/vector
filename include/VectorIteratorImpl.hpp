@@ -68,7 +68,7 @@ typename VectorIterator<T>::Pointer VectorIterator<T>::operator->() const
 template<typename T>
 VectorIterator<T> operator+(const VectorIterator<T>& lhs, typename VectorIterator<T>::Difference delta) noexcept
 {
-    VectorIterator<T> tmp = *lhs;
+    VectorIterator<T> tmp = lhs;
     tmp += delta;
     return tmp;
 }
@@ -76,7 +76,7 @@ VectorIterator<T> operator+(const VectorIterator<T>& lhs, typename VectorIterato
 template<typename T>
 VectorIterator<T> operator-(const VectorIterator<T>& lhs, typename VectorIterator<T>::Difference delta) noexcept
 {
-    VectorIterator<T> tmp = *lhs;
+    VectorIterator<T> tmp = lhs;
     tmp -= delta;
     return tmp;
 }
