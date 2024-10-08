@@ -47,14 +47,11 @@ public:
     ProxyValue operator[](size_t pos) noexcept;
     bool operator[](size_t pos) const noexcept;
 
-    bool front() noexcept;
+    ProxyValue front() noexcept;
     bool front() const noexcept;
 
-    bool back() noexcept;
+    ProxyValue back() noexcept;
     bool back() const noexcept;
-
-    bool*       data() noexcept;
-    const bool* data() const noexcept;
 
     bool   empty   () const noexcept;
     size_t size    () const noexcept;

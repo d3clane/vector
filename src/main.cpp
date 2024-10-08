@@ -102,7 +102,9 @@ int main()
         std::cout << bv[i] << std::endl;
     }
 
-    //std::cout << bv.front() << " " << bv.back() << std::endl;
+    bv.front() = 0;
+
+    std::cout << bv.front() << " " << bv.back() << std::endl;
 
 #if 0
     std::vector<tmp> v;

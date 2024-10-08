@@ -188,6 +188,33 @@ void Vector<bool, AllocatorType>::popBack() noexcept
     size_--;
 }
 
+
+template<Allocator AllocatorType>
+typename Vector<bool, AllocatorType>::ProxyValue Vector<bool, AllocatorType>::front() noexcept
+{
+    return this->operator[](0);
+}
+
+template<Allocator AllocatorType>
+bool Vector<bool, AllocatorType>::front() const noexcept
+{
+    return this->operator[](0);
+}
+
+template<Allocator AllocatorType>
+typename Vector<bool, AllocatorType>::ProxyValue Vector<bool, AllocatorType>::back() noexcept
+{
+    return this->operator[](size_ - 1);
+}
+
+template<Allocator AllocatorType>
+bool Vector<bool, AllocatorType>::back() const noexcept
+{
+    return this->operator[](size_ - 1);
+}
+
+// TODO: need to reimplement everything?? (resize, etc..)
+
 // -----------------------Private--------------------------------
 
 template<Allocator AllocatorType>
