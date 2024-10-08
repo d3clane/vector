@@ -5,7 +5,7 @@ namespace MyStd
 {
 
 template <typename T>
-class VectorIterator
+class VectorIterator final
 {
     T* ptr_;
 

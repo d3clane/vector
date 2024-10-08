@@ -15,7 +15,7 @@ enum class Allocator
 };
 
 template <typename T, Allocator AllocatorType = Allocator::StaticMem>
-class Vector
+class Vector final
 {
     char* data_;
     size_t size_;

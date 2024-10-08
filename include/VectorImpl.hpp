@@ -3,6 +3,7 @@
 
 #include "VectorClass.hpp"
 #include "VectorIteratorImpl.hpp"
+#include "CommonVectorFuncs.hpp"
 
 #include "Exceptions.hpp"
 
@@ -14,36 +15,6 @@ namespace MyStd
 
 namespace 
 {
-
-template<typename T>
-void dtorElements(T* data, size_t from, size_t to) noexcept
-{
-    for (size_t i = from; i < to; ++i)
-    {
-        data[i].~T();
-    }
-}
-
-template<Allocator AllocatorType>
-char* allocateMemoryInBytes(size_t sizeInBytes)
-{
-    char* data = nullptr;
-
-    try
-    {
-        data = new char[sizeInBytes];
-    }
-    catch (const std::bad_alloc& e)
-    {
-        throw EXCEPTION_WITH_REASON_CREATE_NEXT_EXCEPTION(
-            StdErrors::MemAllocErr,
-            "Failed to allocate memory for vector",
-            {}
-        );
-    }
-
-    return data;
-}
 
 template<typename T, Allocator AllocatorType>
 void copyToEmptyData(
@@ -199,18 +170,10 @@ void rewriteData(
     }
 }
 
-inline size_t getCapacityAfterGrowth(size_t capacity) noexcept
-{
-    static const size_t growthFactor = 2;
-    static const size_t minCapacity  = 1; 
-    return capacity * growthFactor + minCapacity;
-}
-
 } // namespace anon
 
 template<typename T, Allocator AllocatorType>
 Vector<T, AllocatorType>::Vector() noexcept :  data_(nullptr), size_(0), capacity_(0) {}
-
 
 template<typename T, Allocator AllocatorType>
 Vector<T, AllocatorType>::Vector(size_t size, const T& value) : size_(size), capacity_(size)

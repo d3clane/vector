@@ -77,7 +77,6 @@ int main()
     }
 #endif
 
-#if 0
     MyStd::Vector<bool> bv;
     bv.pushBack(true);
     bv.pushBack(false);
@@ -102,7 +101,8 @@ int main()
     {
         std::cout << bv[i] << std::endl;
     }
-#endif
+
+    //std::cout << bv.front() << " " << bv.back() << std::endl;
 
 #if 0
     std::vector<tmp> v;

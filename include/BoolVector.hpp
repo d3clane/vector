@@ -10,7 +10,7 @@ namespace MyStd
 {
 
 template<Allocator AllocatorType>
-class Vector<bool, AllocatorType>
+class Vector<bool, AllocatorType> final
 {
     struct ProxyValue
     {
@@ -30,15 +30,10 @@ class Vector<bool, AllocatorType>
     size_t capacity_;
 
 public:
-    using Iterator = VectorIterator<bool>;
-
     Vector() noexcept;
 
-    explicit Vector(size_t size, const bool value = false); // TODO: noexcept based on functions in Vector
-    Vector(Iterator first, Iterator last);
-    Vector(Vector& other); // TODO: const Vector& other should be. Like that because I don't have const iterator
-    // TODO: create it or think about it more (maybe like stl input iterator smth like that)
-
+    explicit Vector(size_t size, const bool value = false);
+    Vector(const Vector& other);
     Vector(Vector&& other) noexcept;
 
     Vector& operator=(const Vector& other);
@@ -46,30 +41,20 @@ public:
 
     ~Vector();
 
-    void assign(size_t count, const bool value);
-    void assign(Iterator first, Iterator last);
-
-    typename Iterator::Reference      at(size_t pos);
-    typename Iterator::ConstReference at(size_t pos) const;
+    bool at(size_t pos);
+    bool at(size_t pos) const;
 
     ProxyValue operator[](size_t pos) noexcept;
+    bool operator[](size_t pos) const noexcept;
 
-    typename Iterator::Reference      front() noexcept;
-    typename Iterator::ConstReference front() const noexcept;
+    bool front() noexcept;
+    bool front() const noexcept;
 
-    typename Iterator::Reference      back() noexcept;
-    typename Iterator::ConstReference back() const noexcept;
+    bool back() noexcept;
+    bool back() const noexcept;
 
     bool*       data() noexcept;
     const bool* data() const noexcept;
-
-    Iterator begin() noexcept;
-    Iterator end  () noexcept;
-
-    const Iterator begin() const noexcept;
-    const Iterator end  () const noexcept;
-
-    // TODO: rbegin(), rend()
 
     bool   empty   () const noexcept;
     size_t size    () const noexcept;
@@ -83,15 +68,6 @@ public:
     void pushBack(const bool value);
     void popBack() noexcept;
 
-#if 0
-    Iterator insert(Iterator pos, const T& value);
-    Iterator insert(Iterator pos, size_t count, const T& value);
-    Iterator insert(Iterator pos, Iterator first, Iterator last);
-
-    Iterator erase(Iterator pos);
-    Iterator erase(Iterator first, Iterator last);
-#endif
-
     void resize(size_t newSize, const bool value = false);
 
     void swap(Vector& other);
@@ -104,11 +80,9 @@ private:
     };
 
     PushResult tryPush(const bool value);
+
+    void reallocMemory(size_t newCapacity);
 };
-
-
-// -------------------------------------Implementation---------------------------------
-
 
 } // namespace MyStd
 

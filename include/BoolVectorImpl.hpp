@@ -1,8 +1,14 @@
 #ifndef BOOL_VECTOR_IMPL_HPP
 #define BOOL_VECTOR_IMPL_HPP
 
+#include <cassert>
+#include <algorithm>
+
 #include "BoolVector.hpp"
-#include "VectorImpl.hpp"
+#include "CommonVectorFuncs.hpp"
+
+#include "Errors.hpp"
+#include "Exceptions.hpp"
 
 namespace MyStd
 {
@@ -10,25 +16,28 @@ namespace MyStd
 namespace 
 {
 
+size_t getBlock(size_t size) { return size >> 3; }
+size_t getShift(size_t size) { return size & 7; }
+
 void setBit(uint8_t* data, size_t pos, bool value)
 {
-    size_t block = pos >> 3;
-    size_t shift = pos & 7;
+    size_t block = getBlock(pos);
+    size_t shift = getShift(pos);
 
-    data[block] = value ? (data[block] | (1 << shift)) : (data[block] & ~(1 << shift));
+    data[block] = value ? (data[block] | (1u << shift)) : (data[block] & ~(1u << shift));
 }
 
 bool getBit(uint8_t* data, size_t pos)
 {
-    size_t block = pos >> 3;
-    size_t shift = pos & 7;
-    return (data[block] & (1 << shift));
+    size_t block = getBlock(pos);
+    size_t shift = getShift(pos);
+
+    return (data[block] & (1u << shift));
 }
 
 size_t getNeededSize(size_t size)
 {
-    static const int bitsInByte = 8;
-    return (size + bitsInByte - 1) / bitsInByte;
+    return (size + __CHAR_BIT__ - 1) / __CHAR_BIT__;
 }
 
 template<Allocator AllocatorType>
@@ -83,30 +92,6 @@ void copyData(uint8_t* data, size_t size, const bool value)
     }
 }
 
-template<Allocator AllocatorType>
-AllocatedMemInfo<uint8_t> allocateMemory(size_t size)
-{
-    auto info = allocateMemory<uint8_t, AllocatorType>(getNeededSize(size));
-
-    return AllocatedMemInfo<uint8_t>{info.data_, 0, size};
-}
-
-template<Allocator AllocatorType>
-void reallocMemory(Vector<bool, AllocatorType>& data, size_t newSize)
-{
-    assert(newSize >= data.size_);
-
-    uint8_t* newData = allocateMemory<AllocatorType>(newSize).data_;
-
-    copyData<AllocatorType>(newData, data, data + std::min(newSize, data.size_)); // TODO: в другом месте баг без мина скорее всего
-
-    delete [] data.data_;
-    data.data_ = newData;
-    data.size_ = data.size_;
-    data.capacity_ = newSize;
-}
-
-
 } // namespace anon
 
 template<Allocator AllocatorType>
@@ -126,9 +111,9 @@ Vector<bool, AllocatorType>::Vector() noexcept : data_(nullptr), size_(0), capac
 
 template<Allocator AllocatorType>
 Vector<bool, AllocatorType>::Vector(size_t size, const bool value)
-    : data_(nullptr), size_(0), capacity_(0)
+    : data_(nullptr), size_(size), capacity_(size)
 {
-    updateVectorInfo(data_, size_, capacity_, allocateMemory<uint8_t, AllocatorType>(size));
+    data_ = reinterpret_cast<uint8_t*>(allocateMemoryInBytes<AllocatorType>(getNeededSize(size)));
 
     copyData<AllocatorType>(data_, size_, value);
 }
@@ -162,7 +147,7 @@ Vector<bool, AllocatorType>::~Vector()
 template<Allocator AllocatorType>
 typename Vector<bool, AllocatorType>::ProxyValue Vector<bool, AllocatorType>::operator[](size_t pos) noexcept
 {
-    return ProxyValue(&data_[pos / 8], 1 << (pos % 8));
+    return ProxyValue(&data_[getBlock(pos)], 1u << getShift(pos));
 }
 
 template<Allocator AllocatorType>
@@ -226,6 +211,21 @@ typename Vector<bool, AllocatorType>::PushResult Vector<bool, AllocatorType>::tr
     }
 
     return PushResult::Ok;
+}
+
+template<Allocator AllocatorType>
+void Vector<bool, AllocatorType>::reallocMemory(size_t newSize)
+{
+    assert(newSize >= size_);
+
+    uint8_t* newData = reinterpret_cast<uint8_t*>(allocateMemoryInBytes<AllocatorType>(getNeededSize(newSize)));
+
+    copyData<AllocatorType>(newData, data_, std::min(newSize, size_));
+
+    delete [] data_;
+    data_ = newData;
+    /* size_ = size_ */
+    capacity_ = newSize;
 }
 
 } // namespace MyStd
