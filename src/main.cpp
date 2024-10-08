@@ -41,11 +41,18 @@ int main()
     v.popBack();
     v.popBack();
 
-    std::cout << "CLEAR\n";
-    v.clear();
+    //std::cout << "CLEAR\n";
+    //v.clear();
 
     std::cout << "PRINT\n";
+    
+    const auto cv{v};
+    for (auto it = cv.begin(); it != cv.end(); ++it)
+    {
+        std::cout << it->val << std::endl;
+    }
 
+    std::cout << "NEXT\n";
     for (size_t i = 0; i < v.size(); ++i)
     {
         std::cout << v[i] << std::endl;

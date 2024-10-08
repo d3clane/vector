@@ -28,8 +28,8 @@ public:
     Vector() noexcept;
 
     explicit Vector(size_t size, const T& value = T()); // TODO: noexcept based on functions in Vector
-    Vector(Iterator first, Iterator last);
-    Vector(Vector& other); // TODO: const Vector& other should be. Like that because I don't have const iterator
+    Vector(const ConstIterator& first, const ConstIterator& last);
+    Vector(const Vector& other); // TODO: const Vector& other should be. Like that because I don't have const iterator
     // TODO: create it or think about it more (maybe like stl input iterator smth like that)
 
     Vector(Vector&& other) noexcept;
@@ -39,8 +39,10 @@ public:
 
     ~Vector();
 
+#if 0
     void assign(size_t count, const T& value);
-    void assign(Iterator first, Iterator last);
+    void assign(const Iterator first, Iterator last);
+#endif
 
     typename Iterator::Reference      at(size_t pos);
     typename Iterator::ConstReference at(size_t pos) const;
@@ -60,10 +62,8 @@ public:
     Iterator begin() noexcept;
     Iterator end  () noexcept;
 
-    const Iterator begin() const noexcept;
-    const Iterator end  () const noexcept;
-
-    // TODO: rbegin(), rend()
+    ConstIterator begin() const noexcept;
+    ConstIterator end  () const noexcept;
 
     bool   empty   () const noexcept;
     size_t size    () const noexcept;
@@ -102,6 +102,7 @@ private:
     void reallocMemory(size_t newSize);
 };
 
+#if 0
 template<typename T, Allocator AllocatorType>
 bool operator==(const Vector<T, AllocatorType>& lhs, const Vector<T, AllocatorType>& rhs);
 
@@ -119,6 +120,7 @@ bool operator>(const Vector<T, AllocatorType>& lhs, const Vector<T, AllocatorTyp
 
 template<typename T, Allocator AllocatorType>
 bool operator>=(const Vector<T, AllocatorType>& lhs, const Vector<T, AllocatorType>& rhs);
+#endif
 
 } // namespace myStd
 

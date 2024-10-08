@@ -31,6 +31,8 @@ public:
     Reference operator* () const;
     Pointer   operator->() const;
 
+    operator VectorIterator<const T>() const noexcept { return VectorIterator<const T>(ptr_); }
+
     template<typename U>
     friend bool operator==(const VectorIterator<U>& lhs, const VectorIterator<U>& rhs) noexcept;
 
