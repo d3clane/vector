@@ -16,17 +16,13 @@ namespace MyStd
 namespace 
 {
 
-template<typename T, Allocator AllocatorType>
-void copyToEmptyData(
-    char* data, 
-    typename Vector<T, AllocatorType>::ConstIterator first, 
-    typename Vector<T, AllocatorType>::ConstIterator last
-)
+template<typename T, typename ConstIterator>
+void copyToEmptyData(char* data, ConstIterator first, ConstIterator last)
 {
     size_t dataPos = 0;
     try
     {
-        for (typename Vector<T, AllocatorType>::ConstIterator it = first; it != last; ++it)
+        for (ConstIterator it = first; it != last; ++it)
         {
             new(&data[dataPos * sizeof(T)]) T(*it);
             dataPos++;
@@ -48,7 +44,7 @@ void copyToEmptyData(
     }
 }
 
-template<typename T, Allocator AllocatorType>
+template<typename T>
 void copyToEmptyData(char* data, size_t count, const T& value)
 {
     size_t dataPos = 0;
@@ -75,39 +71,35 @@ void copyToEmptyData(char* data, size_t count, const T& value)
     }
 }
 
-template<typename T, Allocator AllocatorType>
-void tryCopyToEmptyDataElseDelete(char* data, size_t count, const T& value)
+template<typename T, typename Allocator>
+void tryCopyToEmptyDataElseDelete(char* data, size_t count, const T& value, Allocator& allocator_)
 {
     try
     {
-        copyToEmptyData<T, AllocatorType>(data, count, value);
+        copyToEmptyData(data, count, value);
     }
     catch (...)
     {
-        delete [] data;
+        allocator_.free(data);
         throw;
     }
 }
 
-template<typename T, Allocator AllocatorType>
-void tryCopyToEmptyDataElseDelete(
-    char* data,
-    typename Vector<T, AllocatorType>::ConstIterator first,
-    typename Vector<T, AllocatorType>::ConstIterator last
-)
+template<typename T, typename ConstIterator, typename Allocator>
+void tryCopyToEmptyDataElseDelete(char* data, ConstIterator first, ConstIterator last, Allocator& allocator_)
 {
     try
     {
-        copyToEmptyData<T, AllocatorType>(data, first, last);
+        copyToEmptyData(data, first, last);
     }
     catch(...)
     {
-        delete [] data;
+        allocator_.free(data);
         throw;
     }
 }
 
-template<typename T, Allocator AllocatorType>
+template<typename T>
 void rewriteData(char* data, size_t count, const T& value)
 {
     size_t dataPos = 0;
@@ -137,18 +129,14 @@ void rewriteData(char* data, size_t count, const T& value)
     }
 }
 
-template<typename T, Allocator AllocatorType>
-void rewriteData(
-    char* data, 
-    typename Vector<T, AllocatorType>::ConstIterator first,
-    typename Vector<T, AllocatorType>::ConstIterator last
-)
+template<typename T, typename ConstIterator>
+void rewriteData(char* data, ConstIterator first, ConstIterator last)
 {
     T* dataTyped = reinterpret_cast<T*>(data);
     size_t dataPos = 0;
     try
     {
-        for (typename Vector<T, AllocatorType>::ConstIterator it = first; it != last; ++it)
+        for (ConstIterator it = first; it != last; ++it)
         {
             dataTyped[dataPos] = *it;
             dataPos++;
@@ -172,53 +160,50 @@ void rewriteData(
 
 } // namespace anon
 
-template<typename T, Allocator AllocatorType>
-Vector<T, AllocatorType>::Vector() noexcept :  data_(nullptr), size_(0), capacity_(0) {}
-
-template<typename T, Allocator AllocatorType>
-Vector<T, AllocatorType>::Vector(size_t size, const T& value) : size_(size), capacity_(size)
+template<typename T, typename Allocator>
+Vector<T, Allocator>::Vector(size_t size, const T& value) : allocator_(Allocator(size))
 {
-    data_ = allocateMemoryInBytes<AllocatorType>(capacity_ * sizeof(T));
+    data_ = allocator_.allocateMemoryInBytes(capacity_ * sizeof(T));
     
-    tryCopyToEmptyDataElseDelete<T, AllocatorType>(data_, size_, value);
+    tryCopyToEmptyDataElseDelete(data_, size_, value);
 }
 
 
-template<typename T, Allocator AllocatorType>
-Vector<T, AllocatorType>::Vector(
-    const ConstIterator& first, const ConstIterator& last
-) : size_(last - first), capacity_(size_)
+template<typename T, typename Allocator>
+Vector<T, Allocator>::Vector(const ConstIterator& first, const ConstIterator& last) 
+    : size_(last - first), capacity_(size_)
 {
-    data_ = allocateMemoryInBytes<AllocatorType>(capacity_ * sizeof(T));
-    tryCopyToEmptyDataElseDelete<T, AllocatorType>(data_, first, last);
+    data_ = allocator_.allocateMemoryInBytes(capacity_ * sizeof(T));
+
+    tryCopyToEmptyDataElseDelete(data_, first, last);
 }
 
 
-template<typename T, Allocator AllocatorType>
-Vector<T, AllocatorType>::Vector(const Vector& other) : size_(other.size_), capacity_(other.size_)
+template<typename T, typename Allocator>
+Vector<T, Allocator>::Vector(const Vector& other) : size_(other.size_), capacity_(other.size_)
 {
-    data_ = allocateMemoryInBytes<AllocatorType>(size_ * sizeof(T));
+    data_ = allocator_.allocateMemoryInBytes(capacity_ * sizeof(T));
 
-    tryCopyToEmptyDataElseDelete<T, AllocatorType>(data_, other.begin(), other.end());
+    tryCopyToEmptyDataElseDelete(data_, other.begin(), other.end());
 }
 
-template<typename T, Allocator AllocatorType>
-Vector<T, AllocatorType>::Vector(Vector&& other) noexcept : size_(other.size_), capacity_(other.size_)
+template<typename T, typename Allocator>
+Vector<T, Allocator>::Vector(Vector&& other) noexcept : size_(other.size_), capacity_(other.size_)
 {
     data_ = other.data_;
     other.data_ = nullptr;
 }
 
-template<typename T, Allocator AllocatorType>
-Vector<T, AllocatorType>& Vector<T, AllocatorType>::operator=(const Vector& other)
+template<typename T, typename Allocator>
+Vector<T, Allocator>& Vector<T, Allocator>::operator=(const Vector& other)
 {
-    Vector<T, AllocatorType> copy(other);
+    Vector<T, Allocator> copy(other);
     std::swap(*this, copy);
     return *this;
 }
 
-template<typename T, Allocator AllocatorType>
-Vector<T, AllocatorType>& Vector<T, AllocatorType>::operator=(Vector&& other) noexcept
+template<typename T, typename Allocator>
+Vector<T, Allocator>& Vector<T, Allocator>::operator=(Vector&& other) noexcept
 {
     size_       = other.size_;
     capacity_   = other.capacity_;
@@ -227,8 +212,8 @@ Vector<T, AllocatorType>& Vector<T, AllocatorType>::operator=(Vector&& other) no
     return *this;
 }
 
-template<typename T, Allocator AllocatorType>
-Vector<T, AllocatorType>::~Vector()
+template<typename T, typename Allocator>
+Vector<T, Allocator>::~Vector()
 {
     if (data_ == nullptr)
         return;
@@ -240,45 +225,51 @@ Vector<T, AllocatorType>::~Vector()
 }
 
 #if 0
-template<typename T, Allocator AllocatorType>
-void Vector<T, AllocatorType>::assign(size_t count, const T& value)
+template<typename T, typename Allocator>
+void Vector<T, Allocator>::assign(size_t count, const T& value)
 {
     if (count > capacity_)
+    {
         reallocMemory(count);
+        capacity_ = count;
+    }
 
     size_t kDataToRewrite = std::min(count, size_);
     size_t kDataToFill    = count - kDataToRewrite;
 
-    rewriteData<T, AllocatorType>(data_, kDataToRewrite, value);
-    copyToEmptyData<T, AllocatorType>(data_ + kDataToRewrite * sizeof(T), kDataToFill, value);
+    rewriteData<T, Allocator>(data_, kDataToRewrite, value);
+    copyToEmptyData<T, Allocator>(data_ + kDataToRewrite * sizeof(T), kDataToFill, value);
 }
 
-template<typename T, Allocator AllocatorType>
-void Vector<T, AllocatorType>::assign(Iterator first, Iterator last)
+template<typename T, typename Allocator>
+void Vector<T, Allocator>::assign(Iterator first, Iterator last)
 {
     size_t count = last - first;
 
     if (count > capacity_)
+    {
         reallocMemory(count);
+        capacity_ = count;
+    }
 
     size_t kDataToRewrite = std::min(count, size_);
 
     Iterator rewriteLast = first + kDataToRewrite; 
-    rewriteData<T, AllocatorType>(data_, first, rewriteLast);
-    copyToEmptyData<T, AllocatorType>(data_ + kDataToRewrite * sizeof(T), rewriteLast, last);
+    rewriteData<T, Allocator>(data_, first, rewriteLast);
+    copyToEmptyData<T, Allocator>(data_ + kDataToRewrite * sizeof(T), rewriteLast, last);
 }
 #endif
 
-template<typename T, Allocator AllocatorType>
-typename Vector<T, AllocatorType>::Iterator::Reference Vector<T, AllocatorType>::at(size_t pos)
+template<typename T, typename Allocator>
+typename Vector<T, Allocator>::Iterator::Reference Vector<T, Allocator>::at(size_t pos)
 {
     return const_cast<typename Iterator::Reference>(
-        const_cast<const Vector<T, AllocatorType>*>(this)->at(pos)
+        const_cast<const Vector<T, Allocator>*>(this)->at(pos)
     );
 }
 
-template<typename T, Allocator AllocatorType>
-typename Vector<T, AllocatorType>::Iterator::ConstReference Vector<T, AllocatorType>::at(size_t pos) const
+template<typename T, typename Allocator>
+typename Vector<T, Allocator>::Iterator::ConstReference Vector<T, Allocator>::at(size_t pos) const
 {
     if (pos >= size_)
     {
@@ -292,127 +283,131 @@ typename Vector<T, AllocatorType>::Iterator::ConstReference Vector<T, AllocatorT
     return data_[pos];
 }
 
-template<typename T, Allocator AllocatorType>
-typename Vector<T, AllocatorType>::Iterator::Reference Vector<T, AllocatorType>::operator[](size_t pos) noexcept
+template<typename T, typename Allocator>
+typename Vector<T, Allocator>::Iterator::Reference Vector<T, Allocator>::operator[](size_t pos) noexcept
 {
     return const_cast<typename Iterator::Reference>(
-        const_cast<const Vector<T, AllocatorType>*>(this)->operator[](pos)
+        const_cast<const Vector<T, Allocator>*>(this)->operator[](pos)
     );
 }
 
-template<typename T, Allocator AllocatorType>
-typename Vector<T, AllocatorType>::Iterator::ConstReference Vector<T, AllocatorType>::operator[](
+template<typename T, typename Allocator>
+typename Vector<T, Allocator>::Iterator::ConstReference Vector<T, Allocator>::operator[](
     size_t pos
 ) const noexcept
 {
     return reinterpret_cast<const T*>(data_)[pos];
 }
 
-template<typename T, Allocator AllocatorType>
-typename Vector<T, AllocatorType>::Iterator::Reference Vector<T, AllocatorType>::front() noexcept
+template<typename T, typename Allocator>
+typename Vector<T, Allocator>::Iterator::Reference Vector<T, Allocator>::front() noexcept
 {
     return const_cast<typename Iterator::Reference>(
-        const_cast<const Vector<T, AllocatorType>*>(this)->front()
+        const_cast<const Vector<T, Allocator>*>(this)->front()
     );
 }
 
-template<typename T, Allocator AllocatorType>
-typename Vector<T, AllocatorType>::Iterator::ConstReference Vector<T, AllocatorType>::front() const noexcept
+template<typename T, typename Allocator>
+typename Vector<T, Allocator>::Iterator::ConstReference Vector<T, Allocator>::front() const noexcept
 {
     return reinterpret_cast<T*>(data)[0];
 }
 
-template<typename T, Allocator AllocatorType>
-typename Vector<T, AllocatorType>::Iterator::Reference Vector<T, AllocatorType>::back() noexcept
+template<typename T, typename Allocator>
+typename Vector<T, Allocator>::Iterator::Reference Vector<T, Allocator>::back() noexcept
 {
     return const_cast<typename Iterator::Reference>(
-        const_cast<const Vector<T, AllocatorType>*>(this)->back()
+        const_cast<const Vector<T, Allocator>*>(this)->back()
     );
 }
 
-template<typename T, Allocator AllocatorType>
-typename Vector<T, AllocatorType>::Iterator::ConstReference Vector<T, AllocatorType>::back() const noexcept
+template<typename T, typename Allocator>
+typename Vector<T, Allocator>::Iterator::ConstReference Vector<T, Allocator>::back() const noexcept
 {
     return reinterpret_cast<T*>(data)[size_ - 1];
 }
 
-template<typename T, Allocator AllocatorType>
-T* Vector<T, AllocatorType>::data() noexcept
+template<typename T, typename Allocator>
+T* Vector<T, Allocator>::data() noexcept
 {
-    return const_cast<T*>(const_cast<const Vector<T, AllocatorType>*>(this)->data());
+    return const_cast<T*>(const_cast<const Vector<T, Allocator>*>(this)->data());
 }
 
-template<typename T, Allocator AllocatorType>
-const T* Vector<T, AllocatorType>::data() const noexcept
+template<typename T, typename Allocator>
+const T* Vector<T, Allocator>::data() const noexcept
 {
     return reinterpret_cast<T*>(data_);
 }
 
-template<typename T, Allocator AllocatorType>
-typename Vector<T, AllocatorType>::Iterator Vector<T, AllocatorType>::begin() noexcept
+template<typename T, typename Allocator>
+typename Vector<T, Allocator>::Iterator Vector<T, Allocator>::begin() noexcept
 {
     return Iterator{reinterpret_cast<T*>(data_)};
 }
 
-template<typename T, Allocator AllocatorType>
-typename Vector<T, AllocatorType>::Iterator Vector<T, AllocatorType>::end() noexcept
+template<typename T, typename Allocator>
+typename Vector<T, Allocator>::Iterator Vector<T, Allocator>::end() noexcept
 {
     return Iterator{reinterpret_cast<T*>(data_) + size_};
 }
 
-template<typename T, Allocator AllocatorType>
-typename Vector<T, AllocatorType>::ConstIterator Vector<T, AllocatorType>::begin() const noexcept
+template<typename T, typename Allocator>
+typename Vector<T, Allocator>::ConstIterator Vector<T, Allocator>::begin() const noexcept
 {
     return ConstIterator{reinterpret_cast<T*>(data_)};
 }
 
-template<typename T, Allocator AllocatorType>
-typename Vector<T, AllocatorType>::ConstIterator Vector<T, AllocatorType>::end() const noexcept
+template<typename T, typename Allocator>
+typename Vector<T, Allocator>::ConstIterator Vector<T, Allocator>::end() const noexcept
 {
     return ConstIterator{reinterpret_cast<const T*>(data_) + size_};
 }
 
-template<typename T, Allocator AllocatorType>
-bool Vector<T, AllocatorType>::empty() const noexcept
+template<typename T, typename Allocator>
+bool Vector<T, Allocator>::empty() const noexcept
 {
     return size_ == 0;
 }
 
-template<typename T, Allocator AllocatorType>
-size_t Vector<T, AllocatorType>::size() const noexcept
+template<typename T, typename Allocator>
+size_t Vector<T, Allocator>::size() const noexcept
 {
     return size_;
 }
 
-template<typename T, Allocator AllocatorType>
-size_t Vector<T, AllocatorType>::capacity() const noexcept
+template<typename T, typename Allocator>
+size_t Vector<T, Allocator>::capacity() const noexcept
 {
     return capacity_;
 }
 
-template<typename T, Allocator AllocatorType>
-void Vector<T, AllocatorType>::reserve(size_t newCapacity)
+template<typename T, typename Allocator>
+void Vector<T, Allocator>::reserve(size_t newCapacity)
 {
     if (newCapacity > capacity_)
-        reallocMemory(newCapacity);
+    {
+        data_ = allocator_.reallocMemory(data_, capacity_, newCapacity);
+        capacity_ = newCapacity;
+    }
 }
 
-template<typename T, Allocator AllocatorType>
-void Vector<T, AllocatorType>::shrinkToFit()
+template<typename T, typename Allocator>
+void Vector<T, Allocator>::shrinkToFit()
 {
-    reallocMemory(size_);
+    data_ = allocator_.reallocMemory(data_, capacity_, size_);
+    capacity_ = size_;
 }
 
-template<typename T, Allocator AllocatorType>
-void Vector<T, AllocatorType>::clear() noexcept
+template<typename T, typename Allocator>
+void Vector<T, Allocator>::clear() noexcept
 {
     dtorElements(reinterpret_cast<T*>(data_), 0, size_);
 
     size_ = 0;
 }
 
-template<typename T, Allocator AllocatorType>
-void Vector<T, AllocatorType>::pushBack(const T& value)
+template<typename T, typename Allocator>
+void Vector<T, Allocator>::pushBack(const T& value)
 {
     PushResult pushResult = tryPush(value);
 
@@ -421,10 +416,10 @@ void Vector<T, AllocatorType>::pushBack(const T& value)
 
     assert(pushResult == PushResult::NeedToResize);
 
-    Vector<T, AllocatorType> newVector;
+    Vector<T, Allocator> newVector;
     newVector.reserve(getCapacityAfterGrowth(capacity_));
 
-    copyToEmptyData<T, AllocatorType>(newVector.data_, begin(), end());
+    copyToEmptyData<T, Allocator>(newVector.data_, begin(), end());
     newVector.size_ = size_;
 
     pushResult = newVector.tryPush(value);
@@ -433,16 +428,16 @@ void Vector<T, AllocatorType>::pushBack(const T& value)
     std::swap(*this, newVector);
 }
 
-template<typename T, Allocator AllocatorType>
-void Vector<T, AllocatorType>::popBack() noexcept
+template<typename T, typename Allocator>
+void Vector<T, Allocator>::popBack() noexcept
 {
     dtorElements(reinterpret_cast<T*>(data_) + size_ - 1, 0, 1);
     size_--;
 }
 
 #if 0
-template<typename T, Allocator AllocatorType>
-typename Vector<T, AllocatorType>::Iterator Vector<T, AllocatorType>::insert(Iterator pos, const T& value)
+template<typename T, typename Allocator>
+typename Vector<T, Allocator>::Iterator Vector<T, Allocator>::insert(Iterator pos, const T& value)
 {
     
 }
@@ -454,35 +449,38 @@ Iterator erase(Iterator pos);
 Iterator erase(Iterator first, Iterator last);
 #endif
 
-template<typename T, Allocator AllocatorType>
-void Vector<T, AllocatorType>::resize(size_t newSize, const T& value)
+// allocator - allocateMemoryInBytes, reallocMemory, freeMemory, resizeData, data(), size(), capacity()
+
+template<typename T, typename Allocator>
+void Vector<T, Allocator>::resize(size_t newSize, const T& value)
 {
-    char* newData = allocateMemoryInBytes<AllocatorType>(newSize * sizeof(T));
+    allocator_.resize(data_, )
+    char* newData = allocator_.allocateMemoryInBytes(newSize * sizeof(T));
 
     ConstIterator endCopyData = begin() + std::min(size_, newSize);
-    copyToEmptyData<T, AllocatorType>(newData, begin(), endCopyData);
+    copyToEmptyData(newData, begin(), endCopyData);
     
     if (newSize > size_)
-        copyToEmptyData<T, AllocatorType>(newData + size_ * sizeof(T), newSize - size_, value);
+        copyToEmptyData(newData + size_ * sizeof(T), newSize - size_, value);
 
     dtorElements(data_, 0, size_);
-    delete [] data_;
+    allocator_.free(data_);
 
     data_     = newData;
     size_     = newSize;
     capacity_ = newSize;
 }
 
-template<typename T, Allocator AllocatorType>
-void Vector<T, AllocatorType>::swap(Vector& other)
+template<typename T, typename Allocator>
+void Vector<T, Allocator>::swap(Vector& other)
 {
     std::swap(data_, other.data_); // using my move ctor
 }
 
 // ------------------------------Private------------------------------
 
-template<typename T, Allocator AllocatorType>
-typename Vector<T, AllocatorType>::PushResult Vector<T, AllocatorType>::tryPush(const T& value)
+template<typename T, typename Allocator>
+typename Vector<T, Allocator>::PushResult Vector<T, Allocator>::tryPush(const T& value)
 {   
     if (size_ >= capacity_)
         return PushResult::NeedToResize;
@@ -504,21 +502,19 @@ typename Vector<T, AllocatorType>::PushResult Vector<T, AllocatorType>::tryPush(
     return PushResult::Ok;
 }
 
-template<typename T, Allocator AllocatorType>
-void Vector<T, AllocatorType>::reallocMemory(size_t newCapacity)
+template<typename T, typename Allocator>
+void Vector<T, Allocator>::reallocMemory(size_t newCapacity)
 {
-    assert(newCapacity >= capacity_);
+    char* newData = allocator_.allocateMemoryInBytes(newCapacity * sizeof(T));
 
-    char* newData = allocateMemoryInBytes<AllocatorType>(newCapacity * sizeof(T));
-
-    copyToEmptyData<T, AllocatorType>(newData, begin(), end());
+    ConstIterator endCopyData = begin() + std::min(size_, newCapacity);
+    copyToEmptyData(newData, begin(), endCopyData);
 
     dtorElements(reinterpret_cast<T*>(data_), 0, size_);
-    delete [] data_;
+    allocator_.free(data_);
+    //delete [] data_;
 
     data_ = newData;
-    /* size_ = size_ */
-    capacity_ = newCapacity;
 }
 
 

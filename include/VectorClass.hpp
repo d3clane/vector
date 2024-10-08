@@ -8,29 +8,19 @@
 namespace MyStd
 {
 
-enum class Allocator
-{
-    StaticMem,
-    DynamicMem,
-};
-
-template <typename T, Allocator AllocatorType = Allocator::StaticMem>
+template <typename T, typename Allocator>
 class Vector final
 {
-    char* data_;
-    size_t size_;
-    size_t capacity_;
+    Allocator allocator_; // allocator can alloc memory, realloc memory, free memory. Also can store static mem
 
 public:
     using Iterator      = VectorIterator<T>;
     using ConstIterator = VectorIterator<const T>;
 
-    Vector() noexcept;
-
-    explicit Vector(size_t size, const T& value = T()); // TODO: noexcept based on functions in Vector
+    Vector() = default;
+    explicit Vector(size_t size, const T& value = T()); 
     Vector(const ConstIterator& first, const ConstIterator& last);
-    Vector(const Vector& other); // TODO: const Vector& other should be. Like that because I don't have const iterator
-    // TODO: create it or think about it more (maybe like stl input iterator smth like that)
+    Vector(const Vector& other);
 
     Vector(Vector&& other) noexcept;
 
