@@ -133,21 +133,56 @@ DynamicAllocator<T>::DynamicAllocator(size_t size) : size_(0), capacity_(size)
 {
     data_ = allocateMem<T>(capacity_);
 }
-
+    
 template<typename T>
 DynamicAllocator<T>::DynamicAllocator(size_t size, const T& value) : size_(0), capacity_(size)
 {
     data_ = allocateMem<T>(capacity_);
 
-    copyData(*this, 0, capacity_, value);
+    try
+    {
+        copyData(*this, 0, capacity_, value);
+    }
+    catch (ExceptionWithReason& e)
+    {
+        free();
+
+        throw EXCEPTION_WITH_REASON_CREATE_NEXT_EXCEPTION(
+            StdErrors::AllocatorCtorErr,
+            "Can't copy into allocated memory in dynamic allocator",
+            std::move(e)
+        );
+    }
+    catch(...)
+    {
+        free();
+        throw;
+    }    
 }
 
 template<typename T>
 DynamicAllocator<T>::DynamicAllocator(const DynamicAllocator& other) : size_(0), capacity_(other.capacity_)
 {
     data_ = allocateMem<T>(capacity_);
+    try
+    {
+        copyData(*this, 0, reinterpret_cast<T*>(other.data_), other.size_);
+    }
+    catch (ExceptionWithReason& e)
+    {
+        free();
 
-    copyData(*this, 0, reinterpret_cast<T*>(other.data_), other.size_);
+        throw EXCEPTION_WITH_REASON_CREATE_NEXT_EXCEPTION(
+            StdErrors::AllocatorCtorErr,
+            "Can't copy into allocated memory in dynamic allocator",
+            std::move(e)
+        );
+    }
+    catch(...)
+    {
+        free();
+        throw;
+    }  
 }
 
 template<typename T>
