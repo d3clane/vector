@@ -3,6 +3,8 @@
 
 #include <cstddef>
 
+#include "Exceptions.hpp"
+
 namespace MyStd
 {
 
@@ -80,6 +82,75 @@ template<typename T>
 AllocatorProxyValue<T>::operator T&()
 {
     return data_[pos_];
+}
+
+#define CATCH_EXCEPTION(ERROR, REASON)  \
+    catch (ExceptionWithReason& exception) \
+    { \
+        allocator.dtorElements(fromPos, dataPos - 1); \
+        throw EXCEPTION_WITH_REASON_CREATE_NEXT_EXCEPTION(ERROR, REASON, std::move(exception)); \
+    } \
+    catch (...) \
+    { \
+        allocator.dtorElements(fromPos, dataPos - 1); \
+        throw; \
+    }
+
+template<typename T, typename Allocator>
+void copyData(Allocator& allocator, const size_t fromPos, size_t count, const T& value)
+{
+    size_t dataPos = fromPos;
+    try
+    {
+        for (dataPos = fromPos; dataPos < count + fromPos; ++dataPos)
+        {
+            allocator[dataPos] = value;
+        }
+    }
+    CATCH_EXCEPTION(StdErrors::VectorCtorErr, "Failed to copy elements while copying allocator");
+}
+
+template<typename T, typename Allocator>
+void copyData(Allocator& allocator, const size_t fromPos, T* otherData, size_t count)
+{
+    size_t dataPos = fromPos;
+    try
+    {
+        for (size_t otherDataPos = fromPos; otherDataPos < count; ++otherDataPos)
+        {
+            allocator[dataPos] = otherData[otherDataPos];
+            dataPos++;
+        }
+    }
+    CATCH_EXCEPTION(StdErrors::VectorCtorErr, "Failed to copy elements while copying allocator");
+}
+
+#undef CATCH_EXCEPTION
+
+template<typename T>
+char* allocateMem(size_t size)
+{
+    char* data = nullptr;
+    try
+    {
+        data = new char[size * sizeof(T)];
+    }
+    catch(std::bad_alloc& exception)
+    {
+        delete [] data;
+        throw EXCEPTION_WITH_REASON_CREATE_NEXT_EXCEPTION(
+            StdErrors::MemAllocErr,
+            "Failed to allocate memory in allocator",
+            {}
+        );
+    }
+    catch(...)
+    {
+        delete [] data;
+        throw;
+    }
+
+    return data;
 }
 
 } // namespace MyStd
