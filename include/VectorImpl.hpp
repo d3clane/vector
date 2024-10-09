@@ -124,17 +124,13 @@ void rewriteData(Allocator& allocator, size_t from, ConstIterator first, ConstIt
 } // namespace anon
 
 template<typename T, typename Allocator>
-Vector<T, Allocator>::Vector(size_t size, const T& value)
+Vector<T, Allocator>::Vector(size_t size, const T& value) : allocator_{size, value}
 {
-    allocator_.allocate(size, value);
 }
 
 template<typename T, typename Allocator>
-Vector<T, Allocator>::Vector(const ConstIterator& first, const ConstIterator& last) 
+Vector<T, Allocator>::Vector(const ConstIterator& first, const ConstIterator& last) : allocator_{last - first}
 {
-    size_t capacity = last - first;
-    allocator_.allocate(capacity);
-
     tryCopyToEmptyDataElseDelete(allocator_, 0, first, last);
 }
 
@@ -296,6 +292,7 @@ void Vector<T, Allocator>::pushBack(const T& value)
     assert(pushResult == PushResult::NeedToResize);
 
     Vector<T, Allocator> newVector;
+
     newVector.reserve(getCapacityAfterGrowth(allocator_.capacity()));
 
     copyToEmptyData(newVector.allocator_, 0, begin(), end());

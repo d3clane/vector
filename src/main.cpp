@@ -15,7 +15,7 @@ struct TestStruct
     TestStruct& operator=(TestStruct&&) { std::cout << "move assignment\n"; return *this; }
     TestStruct& operator=(const TestStruct&) { std::cout << "copy assignment\n"; return *this; }
 
-    ~TestStruct() { std::cout << "destructor\n"; }
+    ~TestStruct() { std::cout << "destructor\n";  }
 
     operator int() { return val; }
 };
@@ -41,8 +41,8 @@ int main()
     v.popBack();
     v.popBack();
 
-    //std::cout << "CLEAR\n";
-    //v.clear();
+    std::cout << "CLEAR\n";
+    v.clear();
 
     std::cout << "PRINT\n";
     

@@ -10,7 +10,7 @@ enum class StdErrors
     MemAllocErr,
     VectorCtorErr,
     VectorIndexOutOfBounds,
-    VectorOnArrayNotEnoughMemory,
+    VectorOnStackNotEnoughMemory,
 };
 
 } // namespace MyStd

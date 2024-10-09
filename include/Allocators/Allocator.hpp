@@ -35,15 +35,14 @@ public:
     virtual size_t size() const = 0;
     virtual size_t capacity() const = 0;
 
-    virtual void allocate(size_t capacity) = 0;
-    virtual void allocate(size_t capacity, const T& value) = 0;
     virtual void free() = 0;
     virtual void realloc(size_t newCapacity) = 0;
     virtual void realloc(size_t newCapacity, const T& value) = 0;
     
     virtual void dtorElements(size_t from, size_t to) = 0;
 
-    virtual AllocatorProxyValue<T>& operator[](size_t pos) = 0;
+    virtual AllocatorProxyValue<T> operator[](size_t pos) = 0;
+    virtual T& operator[](size_t pos) const = 0;
 };
 
 /* swap(Allocator& a, Allocator& b) */

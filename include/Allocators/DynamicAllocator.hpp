@@ -17,8 +17,9 @@ class DynamicAllocator final : public Allocator<T>
 
 public:
     
-    DynamicAllocator() = default;
-    DynamicAllocator(size_t size, const T& value = T());
+    DynamicAllocator() : data_(nullptr), size_(0), capacity_(0) {}
+    DynamicAllocator(size_t size);
+    DynamicAllocator(size_t size, const T& value);
     DynamicAllocator(const DynamicAllocator& other);
 
     DynamicAllocator& operator=(const DynamicAllocator& other);
@@ -29,15 +30,13 @@ public:
     size_t size()     const override;
     size_t capacity() const override;
 
-    void allocate(size_t capacity) override;
-    void allocate(size_t capacity, const T& value) override;
     void free() override;
     void realloc(size_t newCapacity) override;
     void realloc(size_t newCapacity, const T& value) override;
     void dtorElements(size_t from, size_t to) override;
     
-    AllocatorProxyValue<T>& operator[](size_t pos);
-    T& operator[](size_t pos) const;
+    AllocatorProxyValue<T> operator[](size_t pos) override;
+    T& operator[](size_t pos) const override;
 
     void swap(DynamicAllocator& other);
 
@@ -84,6 +83,8 @@ char* allocateMem(size_t size)
         delete [] data;
         throw;
     }
+
+    return data;
 }
 
 template<typename T>
@@ -128,17 +129,23 @@ void DynamicAllocator<T>::swap(DynamicAllocator& other)
 }
 
 template<typename T>
-DynamicAllocator<T>::DynamicAllocator(size_t size, const T& value) : size_(size), capacity_(size)
+DynamicAllocator<T>::DynamicAllocator(size_t size) : size_(0), capacity_(size)
 {
-    data_ = allocateMem<T>(size_);
-
-    copyData(*this, 0, size_, value);
+    data_ = allocateMem<T>(capacity_);
 }
 
 template<typename T>
-DynamicAllocator<T>::DynamicAllocator(const DynamicAllocator& other) : size_(other.size_), capacity_(other.capacity_)
+DynamicAllocator<T>::DynamicAllocator(size_t size, const T& value) : size_(0), capacity_(size)
 {
-    data_ = allocateMem<T>(size_);
+    data_ = allocateMem<T>(capacity_);
+
+    copyData(*this, 0, capacity_, value);
+}
+
+template<typename T>
+DynamicAllocator<T>::DynamicAllocator(const DynamicAllocator& other) : size_(0), capacity_(other.capacity_)
+{
+    data_ = allocateMem<T>(capacity_);
 
     copyData(*this, 0, reinterpret_cast<T*>(other.data_), other.size_);
 }
@@ -177,24 +184,6 @@ size_t DynamicAllocator<T>::capacity() const
 }
 
 template<typename T>
-void DynamicAllocator<T>::allocate(size_t capacity)
-{
-    if (capacity <= capacity_)
-        return;
-
-    realloc(capacity);
-}
-
-template<typename T>
-void DynamicAllocator<T>::allocate(size_t capacity, const T& value)
-{
-    if (capacity <= capacity_)
-        return;
-
-    realloc(capacity, value);
-}
-
-template<typename T>
 void DynamicAllocator<T>::free()
 {
     dtorElements(0, size_);
@@ -205,6 +194,7 @@ template<typename T>
 void DynamicAllocator<T>::realloc(size_t newCapacity)
 {
     DynamicAllocator<T> tmp{newCapacity};
+
 
     copyData(tmp, 0, reinterpret_cast<T*>(data_), std::min(size_, newCapacity));
 
@@ -229,10 +219,12 @@ void DynamicAllocator<T>::dtorElements(size_t fromPos, size_t to)
     {
         typedData[pos].~T();
     }
+
+    size_ -= to - fromPos;
 }
 
 template<typename T>
-AllocatorProxyValue<T>& DynamicAllocator<T>::operator[](size_t pos)
+AllocatorProxyValue<T> DynamicAllocator<T>::operator[](size_t pos)
 {
     AllocatorProxyValue<T> proxy{reinterpret_cast<T*>(data_), size_, capacity_, pos};
     return proxy;
