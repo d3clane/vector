@@ -4,11 +4,12 @@
 #include <stddef.h>
 
 #include "VectorIteratorClass.hpp"
+#include "Allocators/DynamicAllocator.hpp"
 
 namespace MyStd
 {
 
-template <typename T, typename Allocator>
+template <typename T, typename Allocator = DynamicAllocator<T> >
 class Vector final
 {
     Allocator allocator_; // allocator can alloc memory, realloc memory, free memory. Also can store static mem
@@ -20,14 +21,14 @@ public:
     Vector() = default;
     explicit Vector(size_t size, const T& value = T()); 
     Vector(const ConstIterator& first, const ConstIterator& last);
-    Vector(const Vector& other);
+    Vector(const Vector& other) = default;
 
-    Vector(Vector&& other) noexcept;
+    Vector(Vector&& other) = default;
 
     Vector& operator=(const Vector& other);
-    Vector& operator=(Vector&& other) noexcept;
+    Vector& operator=(Vector&& other) = default;
 
-    ~Vector();
+    ~Vector() = default;
 
 #if 0
     void assign(size_t count, const T& value);
@@ -88,8 +89,6 @@ private:
     };
 
     PushResult tryPush(const T& value);
-
-    void reallocMemory(size_t newSize);
 };
 
 #if 0

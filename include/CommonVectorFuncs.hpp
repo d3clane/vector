@@ -9,7 +9,6 @@
 namespace MyStd
 {
 
-template<Allocator AllocatorType>
 char* allocateMemoryInBytes(size_t sizeInBytes)
 {
     char* data = nullptr;
