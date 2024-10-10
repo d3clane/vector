@@ -30,6 +30,8 @@ public:
     size_t size()     const noexcept override;
     size_t capacity() const noexcept override;
 
+    void size(const size_t newSize) noexcept override;
+
     void free() override;
     void realloc(size_t newCapacity) override;
     void realloc(size_t newCapacity, const T& value) override;
@@ -150,6 +152,12 @@ template<typename T, size_t initCapacity>
 size_t StaticAllocator<T, initCapacity>::capacity() const noexcept
 {
     return capacity_;
+}
+
+template<typename T, size_t initCapacity>
+void StaticAllocator<T, initCapacity>::size(const size_t newSize) noexcept
+{
+    size_ = newSize;
 }
 
 template<typename T, size_t initCapacity>

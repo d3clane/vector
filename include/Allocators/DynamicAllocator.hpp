@@ -30,6 +30,8 @@ public:
     size_t size()     const noexcept override;
     size_t capacity() const noexcept override;
 
+    void size(const size_t newSize) noexcept override;
+
     void free() noexcept override;
     void realloc(size_t newCapacity) override;
     void realloc(size_t newCapacity, const T& value) override;
@@ -141,6 +143,12 @@ template<typename T>
 size_t DynamicAllocator<T>::capacity() const noexcept
 {
     return capacity_;
+}
+
+template<typename T>
+void DynamicAllocator<T>::size(const size_t newSize) noexcept
+{
+    size_ = newSize;
 }
 
 template<typename T>

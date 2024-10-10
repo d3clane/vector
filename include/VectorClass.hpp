@@ -35,16 +35,16 @@ public:
     void assign(const Iterator first, Iterator last);
 #endif
 
-    typename Iterator::Reference               at(size_t pos);
+    typename Iterator::Reference           at(size_t pos);
     typename ConstIterator::ConstReference at(size_t pos) const;
 
-    typename Iterator::Reference               operator[](size_t pos) noexcept;
+    typename Iterator::Reference           operator[](size_t pos) noexcept;
     typename ConstIterator::ConstReference operator[](size_t pos) const noexcept;
 
-    typename Iterator::Reference               front() noexcept;
+    typename Iterator::Reference           front() noexcept;
     typename ConstIterator::ConstReference front() const noexcept;
 
-    typename Iterator::Reference               back() noexcept;
+    typename Iterator::Reference           back() noexcept;
     typename ConstIterator::ConstReference back() const noexcept;
 
     T*       data() noexcept;

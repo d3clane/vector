@@ -20,8 +20,6 @@ public:
     AllocatorProxyValue(T* data, size_t& size, size_t& capacity, size_t pos) : 
         data_(data), size_(size), capacity_(capacity), pos_(pos){}
 
-    //AllocatorProxyValue(const AllocatorProxyValue& other);
-
     T& operator=(const T& value);
 
     operator T&() noexcept;
@@ -34,10 +32,12 @@ class IAllocator
 public:
     virtual ~IAllocator() = default;
 
-    virtual T* data() = 0;
-    virtual const T* data() const = 0;
-    virtual size_t size() const = 0;
-    virtual size_t capacity() const = 0;
+    virtual T* data() noexcept = 0;
+    virtual const T* data() const noexcept = 0;
+    virtual size_t size() const noexcept = 0;
+    virtual size_t capacity() const noexcept = 0;
+
+    virtual void size(const size_t newSize) noexcept = 0;
 
     virtual void free() = 0;
     virtual void realloc(size_t newCapacity) = 0;

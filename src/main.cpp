@@ -79,8 +79,10 @@ void test()
 
 int main()
 {
-    test();
-#if 0
+    //test();
+
+    MyStd::Vector<bool> v{10};
+
     v.pushBack(1);
     v.pushBack(2);
     v.pushBack(3);
@@ -92,42 +94,42 @@ int main()
     v.pushBack(9);
     v.pushBack(10);
 
-    for (auto it = v.begin(); it != v.end(); ++it)
+    for (int i = 0; i < v.size(); ++i)
     {
-        std::cout << *it << std::endl;
+        std::cout << v[i] << " ";
     }
-#endif
+    std::cout << "\n";
 
-#if 0
-    MyStd::Vector<bool> bv;
-    bv.pushBack(true);
-    bv.pushBack(false);
-    bv.pushBack(false);
-    bv.pushBack(true);
-    bv.pushBack(false);
+    v.pushBack(true);
+    v.pushBack(false);
+    v.pushBack(false);
+    v.pushBack(true);
+    v.pushBack(false);
 
-    for (size_t i = 0; i < bv.size(); ++i)
+    for (size_t i = 0; i < v.size(); ++i)
     {
-        std::cout << bv[i] << std::endl;
+        std::cout << v[i] << " ";
     }
 
-    bv.popBack();
-    bv.popBack();
+    std::cout << "\n";
 
-    bv[2] = true;
+    v.popBack();
+    v.popBack();
+
+    v[2] = true;
 
     std::cout << "RESTART\n";
 
 
-    for (size_t i = 0; i < bv.size(); ++i)
+    for (size_t i = 0; i < v.size(); ++i)
     {
-        std::cout << bv[i] << std::endl;
+        std::cout << v[i] << " ";
     }
+    
+    std::cout << "\n";
+    v.front() = 0;
 
-    bv.front() = 0;
-
-    std::cout << bv.front() << " " << bv.back() << std::endl;
-#endif
+    std::cout << v.front() << " " << v.back() << std::endl;
 
 #if 0
     std::vector<tmp> v;

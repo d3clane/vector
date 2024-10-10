@@ -5,12 +5,13 @@
 #include <cstdint>
 
 #include "VectorClass.hpp"
+#include "Allocators/DynamicAllocator.hpp"
 
 namespace MyStd
 {
 
-template<Allocator AllocatorType>
-class Vector<bool, AllocatorType> final
+template<typename Allocator>
+class Vector<bool, Allocator> final
 {
     struct ProxyValue
     {
@@ -25,21 +26,14 @@ class Vector<bool, AllocatorType> final
         operator bool() const;
     };
 
-    uint8_t* data_;
+    Allocator allocator_;
     size_t size_;
-    size_t capacity_;
 
 public:
     Vector() noexcept;
 
-    explicit Vector(size_t size, const bool value = false);
-    Vector(const Vector& other);
-    Vector(Vector&& other) noexcept;
-
-    Vector& operator=(const Vector& other);
-    Vector& operator=(Vector&& other) noexcept;
-
-    ~Vector();
+    explicit Vector(size_t size);
+    explicit Vector(size_t size, const bool value);
 
     bool at(size_t pos);
     bool at(size_t pos) const;
@@ -77,8 +71,6 @@ private:
     };
 
     PushResult tryPush(const bool value);
-
-    void reallocMemory(size_t newCapacity);
 };
 
 } // namespace MyStd

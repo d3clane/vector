@@ -62,9 +62,12 @@ $(DEPS) : $(OUT_O_DIR)/%.d : %.cpp
 #$(TESTFILES): $(OUT_O_DIR)/LC.x
 #	@$(ROOT_DIR)/runtest.sh $@ $(OUT_O_DIR)/LC.x
 
-.PHONY: clean
+.PHONY: clean cleanAll
 clean:
 	rm -rf $(CPPOBJ) $(DEPS) $(OUT_O_DIR)/*.x $(OUT_O_DIR)/*.log
+
+cleanAll: clean
+	rm -rf $(PROGRAM_DIR)/$(PROGRAM_NAME)
 
 NODEPS = clean
 

@@ -16,10 +16,10 @@ namespace MyStd
 namespace 
 {
 
-size_t getBlock(size_t size) { return size >> 3; }
-size_t getShift(size_t size) { return size & 7; }
+inline size_t getBlock(size_t size) { return size >> 3; }
+inline size_t getShift(size_t size) { return size & 7; }
 
-void setBit(uint8_t* data, size_t pos, bool value)
+inline void setBit(uint8_t* data, size_t pos, bool value)
 {
     size_t block = getBlock(pos);
     size_t shift = getShift(pos);
@@ -27,7 +27,7 @@ void setBit(uint8_t* data, size_t pos, bool value)
     data[block] = value ? (data[block] | (1u << shift)) : (data[block] & ~(1u << shift));
 }
 
-bool getBit(uint8_t* data, size_t pos)
+inline bool getBit(uint8_t* data, size_t pos)
 {
     size_t block = getBlock(pos);
     size_t shift = getShift(pos);
@@ -35,13 +35,17 @@ bool getBit(uint8_t* data, size_t pos)
     return (data[block] & (1u << shift));
 }
 
-size_t getNeededSize(size_t size)
+inline size_t getNeededSize(size_t size)
 {
     return (size + __CHAR_BIT__ - 1) / __CHAR_BIT__;
 }
 
-template<Allocator AllocatorType>
-void copyData(uint8_t* data, uint8_t* from, size_t size)
+inline bool needToIncreaseSizeInAllocator(size_t allocatorSize, size_t bitsSize)
+{   
+    return bitsSize / __CHAR_BIT__ > allocatorSize;
+}
+
+inline void copyData(uint8_t* data, uint8_t* from, size_t size)
 {
     try
     {
@@ -66,8 +70,7 @@ void copyData(uint8_t* data, uint8_t* from, size_t size)
     }
 }
 
-template<Allocator AllocatorType>
-void copyData(uint8_t* data, size_t size, const bool value)
+inline void copyData(uint8_t* data, size_t size, const bool value)
 {
     try
     {
@@ -94,76 +97,55 @@ void copyData(uint8_t* data, size_t size, const bool value)
 
 } // namespace anon
 
-template<Allocator AllocatorType>
-void Vector<bool, AllocatorType>::ProxyValue::operator=(const bool value)
+template<typename Allocator>
+void Vector<bool, Allocator>::ProxyValue::operator=(const bool value)
 {
     *data_ = value ? (*data_ | mask_) : (*data_ & ~mask_);
 }
 
-template<Allocator AllocatorType>
-Vector<bool, AllocatorType>::ProxyValue::operator bool() const
+template<typename Allocator>
+Vector<bool, Allocator>::ProxyValue::operator bool() const
 {
     return (*data_ & mask_);
 }
 
-template<Allocator AllocatorType>
-Vector<bool, AllocatorType>::Vector() noexcept : data_(nullptr), size_(0), capacity_(0) {}
-
-template<Allocator AllocatorType>
-Vector<bool, AllocatorType>::Vector(size_t size, const bool value)
-    : data_(nullptr), size_(size), capacity_(size)
+template<typename Allocator>
+Vector<bool, Allocator>::Vector() noexcept : allocator_(), size_(0) 
 {
-    data_ = reinterpret_cast<uint8_t*>(allocateMemoryInBytes<AllocatorType>(getNeededSize(size)));
-
-    copyData<AllocatorType>(data_, size_, value);
 }
 
-template<Allocator AllocatorType>
-Vector<bool, AllocatorType>::Vector(Vector<bool, AllocatorType>&& other) noexcept
-    : data_(other.data_), size_(other.size_), capacity_(other.capacity_)
+template<typename Allocator>
+Vector<bool, Allocator>::Vector(size_t size) : allocator_(getNeededSize(size)), size_(0)
 {
-    other.data_ = nullptr;
-    other.size_ = 0;
-    other.capacity_ = 0;
 }
 
-template<Allocator AllocatorType>
-Vector<bool, AllocatorType>& Vector<bool, AllocatorType>::operator=(Vector<bool, AllocatorType>&& other) noexcept
+template<typename Allocator>
+Vector<bool, Allocator>::Vector(size_t size, const bool value)
+    : allocator_(getNeededSize(size), value), size_(size)
 {
-    data_       = other.data_;
-    size_       = other.size_;
-    capacity_   = other.capacity_;
-    other.data_ = 0;
-
-    return *this;
+    copyData(allocator_.data(), size_, value);
 }
 
-template<Allocator AllocatorType>
-Vector<bool, AllocatorType>::~Vector()
+template<typename Allocator>
+typename Vector<bool, Allocator>::ProxyValue Vector<bool, Allocator>::operator[](size_t pos) noexcept
 {
-    delete [] data_;
+    return ProxyValue(reinterpret_cast<uint8_t*>(allocator_.data()) + getBlock(pos), 1u << getShift(pos));
 }
 
-template<Allocator AllocatorType>
-typename Vector<bool, AllocatorType>::ProxyValue Vector<bool, AllocatorType>::operator[](size_t pos) noexcept
-{
-    return ProxyValue(&data_[getBlock(pos)], 1u << getShift(pos));
-}
-
-template<Allocator AllocatorType>
-size_t Vector<bool, AllocatorType>::size() const noexcept
+template<typename Allocator>
+size_t Vector<bool, Allocator>::size() const noexcept
 {
     return size_;
 }
 
-template<Allocator AllocatorType>
-bool Vector<bool, AllocatorType>::empty() const noexcept
+template<typename Allocator>
+bool Vector<bool, Allocator>::empty() const noexcept
 {
     return size_ == 0;
 }
 
-template<Allocator AllocatorType>
-void Vector<bool, AllocatorType>::pushBack(const bool value)
+template<typename Allocator>
+void Vector<bool, Allocator>::pushBack(const bool value)
 {
     PushResult pushResult = tryPush(value);
 
@@ -172,60 +154,78 @@ void Vector<bool, AllocatorType>::pushBack(const bool value)
 
     assert(pushResult == PushResult::NeedToResize);
 
-    Vector<bool, AllocatorType> newVector{getCapacityAfterGrowth(capacity_)};
-    copyData<AllocatorType>(newVector.data_, data_, size_);
+    Vector<bool, Allocator> newVector{getCapacityAfterGrowth(allocator_.capacity())};
+
+    copyData(
+        reinterpret_cast<uint8_t*>(newVector.allocator_.data()), 
+        reinterpret_cast<uint8_t*>(allocator_.data()), 
+        size_
+    );
+
+    newVector.allocator_.size(allocator_.size());
     newVector.size_ = size_;
 
     pushResult = newVector.tryPush(value);
     assert(pushResult == PushResult::Ok);
 
-    std::swap(*this, newVector);
+    swap(newVector);
 }
 
-template<Allocator AllocatorType>
-void Vector<bool, AllocatorType>::popBack() noexcept
+template<typename Allocator>
+void Vector<bool, Allocator>::popBack() noexcept
 {
     size_--;
 }
 
 
-template<Allocator AllocatorType>
-typename Vector<bool, AllocatorType>::ProxyValue Vector<bool, AllocatorType>::front() noexcept
+template<typename Allocator>
+typename Vector<bool, Allocator>::ProxyValue Vector<bool, Allocator>::front() noexcept
 {
     return this->operator[](0);
 }
 
-template<Allocator AllocatorType>
-bool Vector<bool, AllocatorType>::front() const noexcept
+template<typename Allocator>
+bool Vector<bool, Allocator>::front() const noexcept
 {
     return this->operator[](0);
 }
 
-template<Allocator AllocatorType>
-typename Vector<bool, AllocatorType>::ProxyValue Vector<bool, AllocatorType>::back() noexcept
+template<typename Allocator>
+typename Vector<bool, Allocator>::ProxyValue Vector<bool, Allocator>::back() noexcept
 {
     return this->operator[](size_ - 1);
 }
 
-template<Allocator AllocatorType>
-bool Vector<bool, AllocatorType>::back() const noexcept
+template<typename Allocator>
+bool Vector<bool, Allocator>::back() const noexcept
 {
     return this->operator[](size_ - 1);
+}
+
+template<typename Allocator>
+void Vector<bool, Allocator>::swap(Vector& other)
+{
+    allocator_.swap(other.allocator_);
+    std::swap(size_, other.size_);
 }
 
 // TODO: need to reimplement everything?? (resize, etc..)
 
 // -----------------------Private--------------------------------
 
-template<Allocator AllocatorType>
-typename Vector<bool, AllocatorType>::PushResult Vector<bool, AllocatorType>::tryPush(const bool value)
+template<typename Allocator>
+typename Vector<bool, Allocator>::PushResult Vector<bool, Allocator>::tryPush(const bool value)
 {   
-    if (size_ >= capacity_)
+    if (needToIncreaseSizeInAllocator(allocator_.capacity(), allocator_.size()))
         return PushResult::NeedToResize;
 
     try
     {
-        setBit(data_, size_, value);
+        setBit(reinterpret_cast<uint8_t*>(allocator_.data()), size_, value);
+
+        if (needToIncreaseSizeInAllocator(allocator_.size(), size_))
+            allocator_.size(allocator_.size() + 1);
+
         ++size_;
     }
     catch (ExceptionWithReason& exception)
@@ -238,21 +238,6 @@ typename Vector<bool, AllocatorType>::PushResult Vector<bool, AllocatorType>::tr
     }
 
     return PushResult::Ok;
-}
-
-template<Allocator AllocatorType>
-void Vector<bool, AllocatorType>::reallocMemory(size_t newSize)
-{
-    assert(newSize >= size_);
-
-    uint8_t* newData = reinterpret_cast<uint8_t*>(allocateMemoryInBytes<AllocatorType>(getNeededSize(newSize)));
-
-    copyData<AllocatorType>(newData, data_, std::min(newSize, size_));
-
-    delete [] data_;
-    data_ = newData;
-    /* size_ = size_ */
-    capacity_ = newSize;
 }
 
 } // namespace MyStd
