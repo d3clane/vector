@@ -14,7 +14,7 @@ class StaticAllocator final : public IAllocator<T>
     size_t size_ = 0;
     size_t capacity_ = initCapacity;
 
-    char data_[initCapacity];
+    char data_[initCapacity * sizeof(T)];
 public:
     StaticAllocator() : size_(0) {}
 

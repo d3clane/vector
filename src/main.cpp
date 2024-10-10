@@ -4,6 +4,8 @@
 #include <iostream>
 #include <vector>
 
+#include "Log.h"
+
 struct TestStruct
 {
     int val = 78;
@@ -20,7 +22,8 @@ struct TestStruct
 
     operator int() const { return val; }
 };
-int main()
+
+void test()
 {
     TestStruct myTmp;
     myTmp.val = 23;
@@ -79,7 +82,13 @@ int main()
     //exit(0);
 
     std::cout << "END\n";
-    std::cout << v.size() << "\n";
+}
+
+int main()
+{
+    test();
+
+    std::cout << "HERE\n";
 #if 0
     v.pushBack(1);
     v.pushBack(2);

@@ -2,3 +2,8 @@
 .DS_Store
 *.out
 *.o
+*.d
+*.html
+Log.h
+Colors.h
+log.cpp
