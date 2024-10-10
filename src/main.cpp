@@ -59,13 +59,6 @@ void test()
         std::cout << it->val << std::endl;
     }
     
-    #if 0
-    for (auto it = v.begin(); it != v.end(); ++it)
-    {
-        std::cout << it->val << std::endl;
-    }
-    #endif
-
     std::cout << "NEXT\n";
     for (auto it = v.begin(); it != v.end(); ++it)
     {
@@ -87,8 +80,6 @@ void test()
 int main()
 {
     test();
-
-    std::cout << "HERE\n";
 #if 0
     v.pushBack(1);
     v.pushBack(2);

@@ -193,7 +193,6 @@ void StaticAllocator<T, initCapacity>::dtorElements(size_t fromPos, size_t to)
 template<typename T, size_t initCapacity>
 AllocatorProxyValue<T> StaticAllocator<T, initCapacity>::operator[](size_t pos)
 {
-    // std::cout << (1)
     AllocatorProxyValue<T> proxy{reinterpret_cast<T*>(data_), size_, capacity_, pos};
     return proxy;
 }
@@ -207,9 +206,7 @@ const T& StaticAllocator<T, initCapacity>::operator[](size_t pos) const
 template<typename T, size_t initCapacity>
 StaticAllocator<T, initCapacity>::~StaticAllocator()
 {
-    std::cout << "BEGIN DTOR\n";
     free();
-    std::cout << "END DTOR\n";
 }
 
 } // namespace MyStd

@@ -126,12 +126,6 @@ void rewriteData(Allocator& allocator, size_t from, ConstIterator first, ConstIt
 template<typename T, typename Allocator>
 Vector<T, Allocator>::Vector(size_t size, const T& value) : allocator_{size, value}
 {
-    // std::cout << (1)
-    for (size_t i = 0; i < size; ++i)
-    {
-        // std::cout << (1)
-    }
-    // std::cout << (1)
 }
 
 template<typename T, typename Allocator>

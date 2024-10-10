@@ -56,9 +56,7 @@ public:
 template<typename T>
 void constructInMemory(T* memory, const T& value)
 {
-    // std::cout << (1)
     new (memory) T(value);
-    // std::cout << (1)
 }
 
 template<typename T>
@@ -73,7 +71,6 @@ T& AllocatorProxyValue<T>::operator=(const T& value)
     // NO CHECKS
     if (pos_ >= size_)
     {
-        //std::cout << "CONSTRUCTING, pos and size: " << pos_ << " " << size_ << "\n";
         constructInMemory(data_ + pos_, value);
         ++size_;
     }
@@ -86,7 +83,6 @@ T& AllocatorProxyValue<T>::operator=(const T& value)
 template<typename T>
 AllocatorProxyValue<T>::operator T&() noexcept
 {
-    // std::cout << (1)
     return data_[pos_];
 }
 
