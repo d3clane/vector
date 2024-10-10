@@ -126,6 +126,12 @@ void rewriteData(Allocator& allocator, size_t from, ConstIterator first, ConstIt
 template<typename T, typename Allocator>
 Vector<T, Allocator>::Vector(size_t size, const T& value) : allocator_{size, value}
 {
+    // std::cout << (1)
+    for (size_t i = 0; i < size; ++i)
+    {
+        // std::cout << (1)
+    }
+    // std::cout << (1)
 }
 
 template<typename T, typename Allocator>
@@ -145,13 +151,20 @@ Vector<T, Allocator>& Vector<T, Allocator>::operator=(const Vector& other)
 template<typename T, typename Allocator>
 typename Vector<T, Allocator>::Iterator::Reference Vector<T, Allocator>::at(size_t pos)
 {
-    return const_cast<typename Iterator::Reference>(
-        const_cast<const Vector<T, Allocator>*>(this)->at(pos)
-    );
+    if (pos >= allocator_.size())
+    {
+        throw EXCEPTION_WITH_REASON_CREATE_NEXT_EXCEPTION(
+            StdErrors::VectorIndexOutOfBounds,
+            "Vector index out of bounds",
+            {}
+        );
+    }
+
+    return allocator_[pos];
 }
 
 template<typename T, typename Allocator>
-typename Vector<T, Allocator>::Iterator::ConstReference Vector<T, Allocator>::at(size_t pos) const
+typename Vector<T, Allocator>::ConstIterator::ConstReference Vector<T, Allocator>::at(size_t pos) const
 {
     if (pos >= allocator_.size())
     {
@@ -168,13 +181,11 @@ typename Vector<T, Allocator>::Iterator::ConstReference Vector<T, Allocator>::at
 template<typename T, typename Allocator>
 typename Vector<T, Allocator>::Iterator::Reference Vector<T, Allocator>::operator[](size_t pos) noexcept
 {
-    return const_cast<typename Iterator::Reference>(
-        const_cast<const Vector<T, Allocator>*>(this)->operator[](pos)
-    );
+    return allocator_[pos];
 }
 
 template<typename T, typename Allocator>
-typename Vector<T, Allocator>::Iterator::ConstReference Vector<T, Allocator>::operator[](size_t pos) 
+typename Vector<T, Allocator>::ConstIterator::ConstReference Vector<T, Allocator>::operator[](size_t pos) 
     const noexcept
 {
     return allocator_[pos];
@@ -183,13 +194,11 @@ typename Vector<T, Allocator>::Iterator::ConstReference Vector<T, Allocator>::op
 template<typename T, typename Allocator>
 typename Vector<T, Allocator>::Iterator::Reference Vector<T, Allocator>::front() noexcept
 {
-    return const_cast<typename Iterator::Reference>(
-        const_cast<const Vector<T, Allocator>*>(this)->front()
-    );
+    return allocator_[0];
 }
 
 template<typename T, typename Allocator>
-typename Vector<T, Allocator>::Iterator::ConstReference Vector<T, Allocator>::front() const noexcept
+typename Vector<T, Allocator>::ConstIterator::ConstReference Vector<T, Allocator>::front() const noexcept
 {  
     return allocator_[0];
 }
@@ -197,13 +206,11 @@ typename Vector<T, Allocator>::Iterator::ConstReference Vector<T, Allocator>::fr
 template<typename T, typename Allocator>
 typename Vector<T, Allocator>::Iterator::Reference Vector<T, Allocator>::back() noexcept
 {
-    return const_cast<typename Iterator::Reference>(
-        const_cast<const Vector<T, Allocator>*>(this)->back()
-    );
+    return allocator_[allocator_.size() - 1];
 }
 
 template<typename T, typename Allocator>
-typename Vector<T, Allocator>::Iterator::ConstReference Vector<T, Allocator>::back() const noexcept
+typename Vector<T, Allocator>::ConstIterator::ConstReference Vector<T, Allocator>::back() const noexcept
 {
     return allocator_[allocator_.size() - 1];
 }
@@ -211,7 +218,7 @@ typename Vector<T, Allocator>::Iterator::ConstReference Vector<T, Allocator>::ba
 template<typename T, typename Allocator>
 T* Vector<T, Allocator>::data() noexcept
 {
-    return const_cast<T*>(const_cast<const Vector<T, Allocator>*>(this)->data());
+    return allocator_.data();
 }
 
 template<typename T, typename Allocator>
@@ -223,13 +230,13 @@ const T* Vector<T, Allocator>::data() const noexcept
 template<typename T, typename Allocator>
 typename Vector<T, Allocator>::Iterator Vector<T, Allocator>::begin() noexcept
 {
-    return Iterator{allocator_.data()};
+    return Iterator{allocator_[0]};
 }
 
 template<typename T, typename Allocator>
 typename Vector<T, Allocator>::Iterator Vector<T, Allocator>::end() noexcept
 {
-    return Iterator{allocator_.data() + allocator_.size()};
+    return Iterator{allocator_[allocator_.size()]};
 }
 
 template<typename T, typename Allocator>
@@ -294,7 +301,7 @@ void Vector<T, Allocator>::pushBack(const T& value)
     Vector<T, Allocator> newVector;
 
     newVector.reserve(getCapacityAfterGrowth(allocator_.capacity()));
-
+    
     copyToEmptyData(newVector.allocator_, 0, begin(), end());
 
     pushResult = newVector.tryPush(value);

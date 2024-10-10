@@ -9,7 +9,7 @@ namespace MyStd
 {
 
 template<typename T>
-class DynamicAllocator final : public Allocator<T>
+class DynamicAllocator final : public IAllocator<T>
 {
     char* data_;
     size_t size_;
@@ -24,21 +24,21 @@ public:
 
     DynamicAllocator& operator=(const DynamicAllocator& other);
 
-    T* data() override;
+    T* data() noexcept override;
 
-    const T* data()   const override;
-    size_t size()     const override;
-    size_t capacity() const override;
+    const T* data()   const noexcept override;
+    size_t size()     const noexcept override;
+    size_t capacity() const noexcept override;
 
-    void free() override;
+    void free() noexcept override;
     void realloc(size_t newCapacity) override;
     void realloc(size_t newCapacity, const T& value) override;
-    void dtorElements(size_t from, size_t to) override;
+    void dtorElements(size_t from, size_t to) noexcept override;
     
     AllocatorProxyValue<T> operator[](size_t pos) override;
-    T& operator[](size_t pos) const override;
+    const T& operator[](size_t pos) const override;
 
-    void swap(DynamicAllocator& other);
+    void swap(DynamicAllocator& other) noexcept;
 
     ~DynamicAllocator();
 };
@@ -46,7 +46,7 @@ public:
 // --------------------------Implementation-----------------------------------
 
 template<typename T>
-void DynamicAllocator<T>::swap(DynamicAllocator& other)
+void DynamicAllocator<T>::swap(DynamicAllocator& other) noexcept
 {
     std::swap(data_, other.data_);
     std::swap(size_, other.size_);
@@ -120,31 +120,31 @@ DynamicAllocator<T>& DynamicAllocator<T>::operator=(const DynamicAllocator& othe
 }
 
 template<typename T>
-T* DynamicAllocator<T>::data()
+T* DynamicAllocator<T>::data() noexcept
 {
     return reinterpret_cast<T*>(data_);
 }
 
 template<typename T>
-const T* DynamicAllocator<T>::data() const
+const T* DynamicAllocator<T>::data() const noexcept
 {
     return reinterpret_cast<const T*>(data_);
 }
 
 template<typename T>
-size_t DynamicAllocator<T>::size() const
+size_t DynamicAllocator<T>::size() const noexcept
 {
     return size_;
 }
 
 template<typename T>
-size_t DynamicAllocator<T>::capacity() const
+size_t DynamicAllocator<T>::capacity() const noexcept
 {
     return capacity_;
 }
 
 template<typename T>
-void DynamicAllocator<T>::free()
+void DynamicAllocator<T>::free() noexcept
 {
     dtorElements(0, size_);
     delete [] data_;
@@ -154,7 +154,6 @@ template<typename T>
 void DynamicAllocator<T>::realloc(size_t newCapacity)
 {
     DynamicAllocator<T> tmp{newCapacity};
-
 
     copyData(tmp, 0, reinterpret_cast<T*>(data_), std::min(size_, newCapacity));
 
@@ -172,7 +171,7 @@ void DynamicAllocator<T>::realloc(size_t newCapacity, const T& value)
 }
 
 template<typename T>
-void DynamicAllocator<T>::dtorElements(size_t fromPos, size_t to)
+void DynamicAllocator<T>::dtorElements(size_t fromPos, size_t to) noexcept
 {
     T* typedData = reinterpret_cast<T*>(data_);
     for (size_t pos = fromPos; pos < to; ++pos)
@@ -191,9 +190,9 @@ AllocatorProxyValue<T> DynamicAllocator<T>::operator[](size_t pos)
 }
 
 template<typename T>
-T& DynamicAllocator<T>::operator[](size_t pos) const
+const T& DynamicAllocator<T>::operator[](size_t pos) const
 {
-    return reinterpret_cast<T*>(data_)[pos];
+    return reinterpret_cast<const T*>(data_)[pos];
 }
 
 template<typename T>

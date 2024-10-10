@@ -1,4 +1,5 @@
 #include "Vector.hpp"
+#include "Allocators/StaticAllocator.hpp"
 
 #include <iostream>
 #include <vector>
@@ -8,41 +9,44 @@ struct TestStruct
     int val = 78;
 
     TestStruct() { std::cout << "constructor\n"; }
-    TestStruct(const TestStruct&) { std::cout << "copy constructor\n"; }
+    TestStruct(const TestStruct& other) { val = other.val; std::cout << "copy constructor\n"; }
 
-    TestStruct(TestStruct&&) { std::cout << "move constructor\n"; }
+    TestStruct(TestStruct&&) = delete;
 
-    TestStruct& operator=(TestStruct&&) { std::cout << "move assignment\n"; return *this; }
-    TestStruct& operator=(const TestStruct&) { std::cout << "copy assignment\n"; return *this; }
+    TestStruct& operator=(TestStruct&&) = delete;
+    TestStruct& operator=(const TestStruct& other) { val = other.val; std::cout << "copy assignment\n"; return *this; }
 
     ~TestStruct() { std::cout << "destructor\n";  }
 
-    operator int() { return val; }
+    operator int() const { return val; }
 };
 int main()
 {
-
     TestStruct myTmp;
+    myTmp.val = 23;
     std::cout << "BEGIN\n";
 
-    MyStd::Vector<TestStruct> v{5, myTmp};
+    MyStd::Vector<TestStruct, MyStd::StaticAllocator<TestStruct, 15> > v{5, myTmp};
 
+    for (size_t i = 0; i < v.size(); ++i) std::cout << v[i] << " ";
+    std::cout << "\n";
     std::cout << "OPERATOR=\n";
     v[1] = myTmp;
 
     std::cout << "RESERVE:\n";
-    v.reserve(10000);
+    v.reserve(4);
 
     std::cout << "PUSHBACK:\n";
     v.pushBack(myTmp);
 
     std::cout << "POPBACK:\n";
     v.popBack();
+    
     v.popBack();
     v.popBack();
 
-    std::cout << "CLEAR\n";
-    v.clear();
+    //std::cout << "CLEAR\n";
+    //v.clear();
 
     std::cout << "PRINT\n";
     
@@ -51,14 +55,31 @@ int main()
     {
         std::cout << it->val << std::endl;
     }
+    
+    #if 0
+    for (auto it = v.begin(); it != v.end(); ++it)
+    {
+        std::cout << it->val << std::endl;
+    }
+    #endif
 
     std::cout << "NEXT\n";
-    for (size_t i = 0; i < v.size(); ++i)
+    for (auto it = v.begin(); it != v.end(); ++it)
     {
-        std::cout << v[i] << std::endl;
+        std::cout << it->val << std::endl;
     }
 
+    std::cout << "OR\n";
+
+    for (size_t i = 0; i < v.size(); ++i)
+    {
+        //printf("%d", static_cast<int>(v[i]));
+        std::cout << static_cast<int>(v[i]) << std::endl;
+    }
+    //exit(0);
+
     std::cout << "END\n";
+    std::cout << v.size() << "\n";
 #if 0
     v.pushBack(1);
     v.pushBack(2);

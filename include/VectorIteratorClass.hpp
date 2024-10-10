@@ -10,7 +10,7 @@ class VectorIterator final
     T* ptr_;
 
 public:
-    using ValueType      = T;
+    using Value          = T;
     using Pointer        = T*;
     using ConstPointer   = const T*;
     using Reference      = T&;

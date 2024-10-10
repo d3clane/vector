@@ -9,7 +9,7 @@ namespace MyStd
 {
 
 template<typename T>
-class AllocatorProxyValue
+class AllocatorProxyValue final
 {
     T* data_;
     size_t& size_;
@@ -20,17 +20,19 @@ public:
     AllocatorProxyValue(T* data, size_t& size, size_t& capacity, size_t pos) : 
         data_(data), size_(size), capacity_(capacity), pos_(pos){}
 
-    virtual T& operator=(const T& value);
-    virtual ~AllocatorProxyValue() = default;
+    //AllocatorProxyValue(const AllocatorProxyValue& other);
 
-    virtual operator T&();
+    T& operator=(const T& value);
+
+    operator T&() noexcept;
+    operator T*() noexcept;
 };
 
 template<typename T>
-class Allocator
+class IAllocator
 {
 public:
-    virtual ~Allocator() = default;
+    virtual ~IAllocator() = default;
 
     virtual T* data() = 0;
     virtual const T* data() const = 0;
@@ -44,7 +46,7 @@ public:
     virtual void dtorElements(size_t from, size_t to) = 0;
 
     virtual AllocatorProxyValue<T> operator[](size_t pos) = 0;
-    virtual T& operator[](size_t pos) const = 0;
+    virtual const T& operator[](size_t pos) const = 0;
 };
 
 /* swap(Allocator& a, Allocator& b) */
@@ -54,7 +56,9 @@ public:
 template<typename T>
 void constructInMemory(T* memory, const T& value)
 {
+    // std::cout << (1)
     new (memory) T(value);
+    // std::cout << (1)
 }
 
 template<typename T>
@@ -69,6 +73,7 @@ T& AllocatorProxyValue<T>::operator=(const T& value)
     // NO CHECKS
     if (pos_ >= size_)
     {
+        //std::cout << "CONSTRUCTING, pos and size: " << pos_ << " " << size_ << "\n";
         constructInMemory(data_ + pos_, value);
         ++size_;
     }
@@ -79,9 +84,16 @@ T& AllocatorProxyValue<T>::operator=(const T& value)
 }
 
 template<typename T>
-AllocatorProxyValue<T>::operator T&()
+AllocatorProxyValue<T>::operator T&() noexcept
 {
+    // std::cout << (1)
     return data_[pos_];
+}
+
+template<typename T>
+AllocatorProxyValue<T>::operator T*() noexcept
+{
+    return data_ + pos_;
 }
 
 #define CATCH_EXCEPTION(ERROR, REASON)  \
