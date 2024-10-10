@@ -4,8 +4,6 @@
 #include <iostream>
 #include <vector>
 
-#include "Log.h"
-
 struct TestStruct
 {
     int val = 78;
@@ -79,7 +77,7 @@ void test()
 
 int main()
 {
-    //test();
+    test();
 
     MyStd::Vector<bool> v{10};
 
